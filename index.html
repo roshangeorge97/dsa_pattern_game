@@ -1,0 +1,1055 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Pattern Spotter</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700;800&display=swap">
+<style>
+:root{--bg:#ece9f7;--card:#fff;--ink:#241a52;--mut:#6b6394;--line:#cfc8ea;--acc:#ffb400;--accink:#3a2600;--ok:#1f9d6b;--bad:#d6455d;--mark:#ffe08a;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1b1540;--card:#2a2260;--ink:#f1eeff;--mut:#a69fd1;--line:#41388a;--accink:#3a2600;--ok:#4cd6a0;--bad:#ff7d92;--mark:#6a5410;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#1b1540;--card:#2a2260;--ink:#f1eeff;--mut:#a69fd1;--line:#41388a;--accink:#3a2600;--ok:#4cd6a0;--bad:#ff7d92;--mark:#6a5410;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:500 16px/1.5 "Bricolage Grotesque",system-ui,-apple-system,"Segoe UI",sans-serif}
+#app{max-width:640px;margin:0 auto;padding:20px 16px 40px}
+h1{font-size:44px;line-height:1;margin:8px 0 6px;font-weight:800;letter-spacing:-1.5px}
+h2{font-size:22px;margin:0 0 10px;font-weight:800}
+p{margin:0 0 12px}
+.mut{color:var(--mut)}
+.row{display:flex;gap:10px;flex-wrap:wrap}
+.stat{flex:1;min-width:90px;background:var(--card);border:2px solid var(--line);border-radius:14px;padding:10px 12px}
+.stat b{display:block;font-size:26px;font-weight:800;line-height:1.1}
+.btn{font:inherit;font-weight:800;font-size:18px;border:2px solid var(--ink);border-bottom-width:5px;background:var(--acc);color:var(--accink);border-radius:14px;padding:12px 20px;cursor:pointer}
+.btn:active{transform:translateY(3px);border-bottom-width:2px}
+.btn.alt{background:var(--card);color:var(--ink)}
+.btn:focus-visible,.opt:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;font-weight:700}
+.bar{height:10px;background:var(--line);border-radius:6px;overflow:hidden;margin-bottom:16px}
+.bar i{display:block;height:100%;background:var(--acc);width:100%}
+.q{background:var(--card);border:2px solid var(--ink);border-radius:18px;padding:18px;margin-bottom:16px;font-size:20px;line-height:1.45}
+.q small{display:block;color:var(--mut);font-size:14px;margin-bottom:6px}
+.opts{display:grid;gap:10px}
+.opt{font:inherit;font-weight:700;text-align:left;background:var(--card);color:var(--ink);border:2px solid var(--line);border-bottom-width:5px;border-radius:14px;padding:12px 14px;cursor:pointer;display:flex;gap:10px;align-items:center}
+.opt kbd{font:700 13px inherit;color:var(--mut);border:1.5px solid var(--line);border-radius:6px;padding:0 6px}
+.opt.ok{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 18%,var(--card))}
+.opt.no{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 16%,var(--card))}
+.opt:disabled{cursor:default}
+mark{background:var(--mark);color:inherit;border-radius:4px;padding:0 3px}
+.rev{background:var(--card);border:2px solid var(--line);border-left:8px solid var(--ok);border-radius:14px;padding:14px;margin-bottom:14px}
+.rev.bad{border-left-color:var(--bad)}
+.rev .trap{margin-top:8px;padding:8px 10px;border-radius:10px;background:var(--mark)}
+.map{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;margin:14px 0}
+.node{background:var(--card);border:2px solid var(--line);border-radius:14px;padding:12px}
+.node b{display:block;margin-bottom:6px}
+.node .m{height:8px;background:var(--line);border-radius:5px;overflow:hidden}
+.node .m i{display:block;height:100%}
+.node span{font-size:13px;color:var(--mut)}
+.gold{border-color:var(--acc)}
+@media (prefers-reduced-motion:no-preference){.bar i{transition:width .1s linear}}
+pre{background:var(--card);border:2px solid var(--line);border-radius:12px;padding:12px;overflow-x:auto;font:500 14px/1.55 ui-monospace,Menlo,Consolas,monospace;margin:10px 0}.tag{font-size:13px;font-weight:800;border-radius:8px;padding:1px 10px;background:var(--mark)}ul{padding-left:20px;margin:0 0 12px}
+.sel{border-color:var(--ink);background:var(--mark)}.btn:disabled{opacity:.5;cursor:default}table td,table th{padding:4px 6px;border-bottom:1px solid var(--line)}
+.lnk{color:var(--ink);text-decoration:underline;cursor:pointer;font-weight:700}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+var P={hash:"Hash Map",arr:"Arrays & Prefix",mat:"Matrix",two:"Two Pointers",win:"Sliding Window",bs:"Binary Search",ll:"Linked List",stk:"Stack",tree:"Tree DFS/BFS",graph:"Graph & Grid",dp:"Dynamic Programming",gr:"Greedy & Intervals",heap:"Heap",bt:"Backtracking",bit:"Bit Tricks",trie:"Trie"};
+// [name, pattern, statement, signals (|), template tip, trapPattern, trapNote]
+var D=[
+["Two Sum","hash","Return the indices of two numbers in an array that add up to a target.","indices|add up to a target","Store each value in a map; for every x look up target − x."],
+["Contains Duplicate","hash","Return true if any value appears at least twice in the array.","appears at least twice","Add to a set as you scan; a repeat means true."],
+["Valid Anagram","hash","Check whether one string is a rearrangement of another.","rearrangement","Count letters in a map or array and compare."],
+["Group Anagrams","hash","Group strings that are rearrangements of each other.","Group|rearrangements","Key each word by its sorted letters or letter counts."],
+["Longest Consecutive Sequence","hash","Find the length of the longest run of consecutive integers in an unsorted array, in O(n).","unsorted|O(n)","Put everything in a set; only start counting at numbers with no x − 1.","gr","Sorting is the obvious move, but O(n) rules it out."],
+["Valid Palindrome","two","Check if a string reads the same forwards and backwards, ignoring non-alphanumeric characters.","reads the same forwards and backwards","Pointers at both ends, skip junk, compare, move inward."],
+["3Sum","two","Find all unique triplets in an array that sum to zero.","unique triplets|sum to zero","Sort, fix one number, run two pointers on the rest, skip duplicates."],
+["Container With Most Water","two","Given vertical lines at each index, pick two that hold the most water.","pick two|most","Start at both ends; always move the shorter side inward."],
+["Best Time to Buy and Sell Stock","gr","Given daily prices, find the maximum profit from one buy followed by one later sell.","one buy|later sell","Track the minimum price so far and the best profit at each day.","win","Often filed under Sliding Window, but a running minimum is all you need."],
+["Longest Substring Without Repeating Characters","win","Find the length of the longest substring with no repeated characters.","longest substring|no repeated","Expand right; when a repeat appears, shrink left until valid."],
+["Longest Repeating Character Replacement","win","Find the longest substring you can make uniform by replacing at most k characters.","longest substring|at most k","Window is valid while size − maxFreq ≤ k; otherwise shrink."],
+["Minimum Window Substring","win","Find the smallest substring of s that contains every character of t.","smallest substring|contains every","Expand until valid, then shrink while still valid, recording the best."],
+["Valid Parentheses","stk","Check that every opening bracket is closed by the correct type in the correct order.","correct order","Push openers; on a closer, the top of the stack must match."],
+["Reverse Linked List","ll","Reverse a singly linked list.","singly linked list","Walk with prev, cur, next and flip each pointer."],
+["Linked List Cycle","ll","Detect whether a linked list loops back on itself using O(1) memory.","loops back|O(1) memory","Slow moves 1, fast moves 2; if they meet there is a cycle.","hash","A set works, but O(1) memory points to fast and slow pointers."],
+["Remove Nth Node From End of List","ll","Remove the nth node from the end of a linked list in one pass.","from the end|one pass","Move fast n steps ahead, then move both until fast ends.","two","It is a two-pointer gap on a linked list."],
+["Merge k Sorted Lists","heap","Merge k sorted linked lists into one sorted list.","k sorted","Keep a min-heap of each list’s head; pop the smallest, push its next.","ll","It involves lists, but the k-way merge is the heap’s job."],
+["Invert Binary Tree","tree","Swap the left and right child of every node in a binary tree.","every node","Recurse: swap children, then invert both subtrees."],
+["Maximum Depth of Binary Tree","tree","Return the number of nodes along the longest root-to-leaf path.","root-to-leaf","1 + max(depth(left), depth(right))."],
+["Binary Tree Level Order Traversal","tree","Return the node values of a binary tree level by level.","level by level","BFS with a queue; process one level’s size at a time."],
+["Validate Binary Search Tree","tree","Check that every node’s left subtree is smaller and right subtree is larger.","every node’s|subtree","Recurse with a (low, high) bound for each node."],
+["Kth Smallest Element in a BST","tree","Find the kth smallest value in a binary search tree.","binary search tree|kth smallest","In-order traversal visits values in sorted order; stop at k."],
+["Number of Islands","graph","Count connected groups of land cells in a grid of 1s and 0s.","connected groups|grid","Scan the grid; each unseen land cell starts a DFS/BFS flood fill."],
+["Course Schedule","graph","Given prerequisite pairs, decide whether all courses can be finished.","prerequisite pairs","Build a graph; topological sort or cycle detection decides it."],
+["Climbing Stairs","dp","Count the distinct ways to reach step n taking 1 or 2 steps at a time.","Count the distinct ways|1 or 2 steps","dp[i] = dp[i−1] + dp[i−2]."],
+["House Robber","dp","Maximize money from houses in a row without robbing two adjacent houses.","Maximize|adjacent","dp[i] = max(dp[i−1], dp[i−2] + money[i])."],
+["Coin Change","dp","Find the fewest coins needed to make an amount, or −1 if impossible.","fewest coins|amount","dp[a] = 1 + min(dp[a − coin]) over all coins.","gr","Greedy fails for arbitrary coin sets; you need DP."],
+["Longest Increasing Subsequence","dp","Find the length of the longest strictly increasing subsequence.","subsequence","dp[i] = 1 + max(dp[j]) for smaller j, or patience sorting with binary search."],
+["Longest Palindromic Substring","dp","Return the longest palindromic substring of a string.","palindromic substring","Expand around every center, or dp[i][j] over substrings.","two","It looks like two pointers, but a single scan from the ends won’t work."],
+["Word Break","dp","Decide whether a string can be split into words from a dictionary.","can be split|dictionary","dp[i] is true if some j < i has dp[j] true and s[j:i] is a word."],
+["Maximum Subarray","dp","Find the contiguous subarray with the largest sum.","contiguous subarray|largest sum","Kadane: cur = max(x, cur + x); track the best."],
+["Jump Game","gr","Starting at index 0, each value is your max jump length; can you reach the last index?","max jump length|reach the last index","Track the farthest index reachable; fail if you fall behind it.","dp","DP works, but a single farthest-reach variable is enough."],
+["Merge Intervals","gr","Merge all overlapping intervals.","overlapping intervals","Sort by start; extend the last interval or start a new one."],
+["Meeting Rooms II","heap","Find the minimum number of rooms needed for a set of meeting time intervals.","minimum number of rooms","Sort by start; a min-heap of end times frees rooms as meetings finish.","gr","Interval problems are usually greedy, but the heap tracks live meetings."],
+["Search in Rotated Sorted Array","bs","Find a target in a sorted array that was rotated, in O(log n).","sorted|O(log n)","Binary search; decide which half is sorted, then which half holds the target."],
+["Top K Frequent Elements","heap","Return the k most frequent elements of an array.","k most frequent","Count with a map, then a size-k min-heap or bucket sort.","hash","Counting is a hash map step; the top-k selection is the heap."],
+["Find Median from Data Stream","heap","Support adding numbers and reading the median at any time.","adding numbers|median","Max-heap for the lower half, min-heap for the upper half; balance sizes."],
+["Implement Trie (Prefix Tree)","trie","Design a structure supporting insert, search and startsWith for strings.","startsWith","Each node holds children by character and an end-of-word flag."],
+["Word Search","bt","Determine whether a word can be traced through adjacent cells in a grid.","traced|adjacent cells","DFS from each cell; mark visited, recurse, then unmark.","graph","It is a grid, but the unmark-on-return step makes it backtracking."],
+["Number of 1 Bits","bit","Count the set bits in an integer.","set bits","n &= n − 1 clears the lowest set bit; count the loops."],
+["Missing Number","bit","An array holds n distinct numbers from 0 to n; find the one missing.","distinct numbers|missing","XOR all indices and values, or sum 0..n minus the array sum.","hash","A set works, but XOR or arithmetic uses O(1) space."],
+["Sum of Two Integers","bit","Add two integers without using + or −.","without using","XOR gives the sum without carry; AND shifted left gives the carry. Repeat."],
+["Encode and Decode Strings","arr","Design encode and decode so a list of strings survives being sent as one string, even if the strings contain any character.","one string|any character","Prefix each string with its length and a delimiter, like 4#abcd. Decoding reads the length first.","hash","Joining with a separator breaks when a string contains that separator; length prefixes cannot break."],
+["Product of Array Except Self","arr","Return an array where each entry is the product of all other elements, without division and in O(n).","all other elements|without division","Build prefix products from the left, then multiply by suffix products from the right in a second pass."],
+["Find Minimum in Rotated Sorted Array","bs","Find the minimum of a sorted array that was rotated, in O(log n).","rotated|O(log n)","Compare a[mid] with a[hi]: if bigger, go right (lo = mid + 1); otherwise hi = mid."],
+["Reorder List","ll","Reorder a linked list L0, L1, ..., Ln into L0, Ln, L1, Ln-1, ... in place.","Reorder|in place","Find the middle with slow and fast pointers, reverse the second half, then merge the halves alternately."],
+["Lowest Common Ancestor of a Binary Search Tree","tree","Find the lowest node that has both p and q as descendants in a binary search tree.","lowest node|binary search tree","Walk down: both values smaller go left, both larger go right, otherwise the current node is the answer."],
+["Construct Binary Tree from Preorder and Inorder Traversal","tree","Rebuild a binary tree from its preorder and inorder traversal arrays.","preorder and inorder","The first preorder value is the root. Find it in inorder (use a map) to split left and right, then recurse."],
+["Design Add and Search Words Data Structure","trie","Design a structure that adds words and searches them, where a dot can match any letter.","dot can match any letter","A trie plus DFS: on a dot, try every child at that node.","hash","A hash set cannot handle wildcards well; a trie lets you branch."],
+["Clone Graph","graph","Return a deep copy of a connected undirected graph given one node.","deep copy","DFS or BFS with a map from each old node to its clone, so every node is copied once and cycles are safe."],
+["Pacific Atlantic Water Flow","graph","Find all grid cells from which water can flow to both the Pacific and Atlantic oceans.","both the Pacific and Atlantic","Reverse the flow: multi-source DFS or BFS uphill from each ocean border, then intersect the two sets."],
+["Graph Valid Tree","graph","Given n nodes and a list of undirected edges, check whether they form a valid tree.","valid tree","A tree has exactly n − 1 edges and is connected. Use union-find or DFS to check for cycles."],
+["Number of Connected Components in an Undirected Graph","graph","Count the connected components in an undirected graph with n nodes and a list of edges.","connected components","Union-find (count successful merges) or DFS from each unvisited node."],
+["House Robber II","dp","Houses are arranged in a circle; maximize money without robbing two adjacent houses.","in a circle|adjacent","Run House Robber twice, once without the first house and once without the last, and take the max."],
+["Palindromic Substrings","dp","Count how many substrings of a string are palindromes.","Count|palindromes","Expand around each center (odd and even) and count every successful expansion.","two","It reuses the expand-around-center idea, but you count each expansion instead of tracking the longest."],
+["Decode Ways","dp","Count the ways to decode a digit string where 1 to 26 map to letters A to Z.","Count the ways|decode","dp[i] adds dp[i−1] if one digit is valid and dp[i−2] if two digits are valid. Watch the zeros."],
+["Maximum Product Subarray","dp","Find the contiguous subarray with the largest product.","contiguous subarray|largest product","Track both the max and min product ending here, because a negative number can turn the min into the max."],
+["Longest Common Subsequence","dp","Find the length of the longest subsequence common to two strings.","subsequence|two strings","2D dp: if letters match, dp[i−1][j−1] + 1; otherwise the max of dropping a letter from either string."],
+["Unique Paths","dp","Count the paths from the top-left to the bottom-right of a grid moving only right or down.","Count the paths|only right or down","dp[r][c] = dp[r−1][c] + dp[r][c−1]. The first row and column are all 1."],
+["Combination Sum IV","dp","Count the ordered sequences of numbers that add up to a target.","ordered sequences|add up to a target","dp[t] = sum of dp[t − x] over every x. Loop the target outside and the numbers inside to count orderings.","bt","It looks like backtracking, but you only need the count, so DP avoids enumerating."],
+["Insert Interval","gr","Insert a new interval into a sorted list of non-overlapping intervals and merge if needed.","sorted|new interval","Copy intervals ending before the new one, merge the overlapping ones with min start and max end, then copy the rest."],
+["Non-overlapping Intervals","gr","Find the minimum number of intervals to remove so the rest do not overlap.","minimum number|remove","Sort by end time and keep the interval that ends earliest; count the ones that conflict.","dp","DP works, but sorting by end time and keeping the earliest finish is simpler."],
+["Set Matrix Zeroes","mat","If a cell in a matrix is zero, set its entire row and column to zero in place.","entire row and column|in place","Use the first row and first column as markers to get O(1) extra space."],
+["Spiral Matrix","mat","Return all elements of a matrix in spiral order.","spiral order","Keep four boundaries (top, bottom, left, right); walk each side, then shrink that boundary."],
+["Rotate Image","mat","Rotate an n × n matrix 90 degrees clockwise in place.","90 degrees clockwise|in place","Transpose the matrix, then reverse each row."],
+["Binary Tree Maximum Path Sum","tree","Find the maximum sum of a path in a binary tree. A path can start and end at any node.","any node","At each node, return the best path going down one side, and update a global best with node + left + right (ignore negative branches).","dp","It looks like a DP over the tree, and it is one, but the return value must use only one side."],
+["Serialize and Deserialize Binary Tree","tree","Design a way to convert a binary tree to a string and back so the same tree is rebuilt exactly.","convert a binary tree to a string","Use a preorder DFS that writes a marker for each null child; deserialize by reading the tokens in the same order, recursively."],
+["Word Search II","trie","Find all words from a list that can be built by walking adjacent cells in a grid.","all words from a list|adjacent cells","Build a trie of the words, then DFS the grid while following trie children, and prune any branch with no child.","bt","It has backtracking, but the trie is what keeps it fast."],
+["Alien Dictionary","graph","Given words sorted in an alien language, find the order of its letters.","sorted in an alien language","Take the first differing letter of each adjacent word pair as an edge, then topologically sort; a cycle means no valid order."],
+["Merge Two Sorted Lists","ll","Merge two sorted linked lists into one sorted list.","sorted linked lists","Use a dummy head; repeatedly attach the smaller current node from either list, then attach whatever is left over."],
+["Same Tree","tree","Check whether two binary trees are identical in structure and node values.","identical in structure and node values","Recurse on both trees together: if both nodes are null return true; if one is null or the values differ return false; otherwise check left and right."],
+["Subtree of Another Tree","tree","Check whether one binary tree is a subtree of another.","is a subtree of another","For each node of the big tree, run Same Tree against the small tree; return true if any match."],
+["Meeting Rooms","gr","Given meeting time intervals, decide whether one person can attend all of them without overlap.","without overlap","Sort by start time; if any meeting starts before the previous one ends, return false."],
+["Counting Bits","bit","For every number from 0 to n, count its set bits and return the array.","set bits","dp[i] = dp[i >> 1] + (i & 1): each count reuses the count of a smaller number."],
+["Reverse Bits","bit","Reverse the bits of a 32-bit unsigned integer.","32-bit unsigned integer","Loop 32 times: shift the result left, add the lowest bit of n, then shift n right."]
+];
+var K="patternSpotterV1",S;
+try{S=JSON.parse(localStorage.getItem(K))}catch(e){}
+S=S||{xp:0,streak:0,last:"",best:0,m:{}};
+function save(){try{localStorage.setItem(K,JSON.stringify(S))}catch(e){}}
+var app=document.getElementById("app"),R=null,TL=15000,tm=null;
+function lvl(){return Math.floor(S.xp/100)+1}
+function mast(p){return S.m[p]||0}
+function hue(i){return "hsl("+(i*47+250)%360+",65%,50%)"}
+var LVN=["Not started","Spot it","Know why","Build it"];
+function plevel(p){
+  var st=(S.st||{})[p]||[0,0],acc=st[0]?st[1]/st[0]:0,l=0;
+  if(st[0]>=5&&acc>=.7)l=1;
+  if(l>=1&&(!L[p]||(S.l&&S.l[p]||0)>=L[p].steps.length))l=2;
+  if(l>=2&&BL[p]&&Object.keys(S.b||{}).some(function(k){return S.b[k]&&k.indexOf(p)==0&&!isNaN(+k.slice(p.length))}))l=3;
+  return l;
+}
+function tip(p,l){
+  if(l==0)return {t:L[p]?"Learn "+P[p]:"Quiz "+P[p],a:function(){L[p]?lesson(p):start(p,null,5)}};
+  if(l==1)return {t:"Finish the "+P[p]+" lesson",a:function(){lesson(p)}};
+  return BL[p]?{t:"Build the logic for "+P[p],a:function(){bld(p,0)}}:{t:"Quiz "+P[p],a:function(){start(p,null,5)}};
+}
+function home(){
+  clearInterval(tm);R=null;
+  var best=null;
+  Object.keys(P).forEach(function(p){
+    if(!D.some(function(d){return d[1]==p}))return;
+    var l=plevel(p);if(l<3&&(!best||l<best.l))best={p:p,l:l};
+  });
+  var nx=best?tip(best.p,best.l).t:"Today's quiz";
+  app.innerHTML='<h1>Pattern Spotter</h1>'+
+  
+  '<div class="row" style="margin:14px 0"><div class="stat"><b>'+S.streak+'</b>day streak</div><div class="stat"><b>'+S.xp+'</b>XP</div></div>'+
+  '<div class="row" style="margin-top:12px"><button class="btn alt" id="l1" style="flex:1;font-size:22px;padding:20px">My path</button><button class="btn alt" id="play" style="flex:1;font-size:22px;padding:20px">Quiz</button></div>'+
+  '';
+  on("play",function(){start(null,null,5)});on("l1",mapv);
+}
+function ladderDone(p){return !!L[p]&&(S.l&&S.l[p]||0)>=L[p].steps.length}
+var BTN='class="btn alt" style="font-size:14px;padding:6px 12px"';
+function mapv(){
+  var h='<div class="top"><h2>My learning path</h2><button class="btn alt" id="bk" style="font-size:14px;padding:6px 12px">Home</button></div>'+
+  '<p class="mut">Each pattern moves up as you quiz: Spot it, then Know why, then Build it.</p>';
+  Object.keys(P).forEach(function(p){
+    if(!D.some(function(d){return d[1]==p}))return;
+    var l=plevel(p),st=(S.st||{})[p]||[0,0],acc=st[0]?Math.round(st[1]/st[0]*100)+'% correct':'not started';
+    var items=[];
+    if(L[p])items.push('<button '+BTN+' data-a="ln" data-p="'+p+'">Learn</button>');
+    items.push('<button '+BTN+' data-a="pr" data-p="'+p+'">Quiz</button>');
+    items.push('<button '+BTN+' data-a="pb" data-p="'+p+'">Problems ('+D.filter(function(d){return d[1]==p}).length+')</button>');
+    if(BL[p]&&ladderDone(p))items.push('<button '+BTN+' data-a="bd" data-p="'+p+'">Build</button>');
+    h+='<div class="node" style="margin-bottom:10px"><div class="top" style="margin:0"><b>'+P[p]+'</b><span class="tag">'+LVN[l]+'</span></div>'+
+    '<div class="m" style="margin:8px 0"><i style="width:'+(l/3*100)+'%;background:var(--acc)"></i></div>'+
+    '<span>'+acc+' · '+st[0]+' answered</span>'+
+    '<div class="row" style="margin-top:10px">'+items.join('')+'</div></div>';
+  });
+  app.innerHTML=h;on("bk",home);
+  Array.prototype.forEach.call(app.querySelectorAll("[data-a]"),function(b){b.onclick=function(){
+    var p=b.dataset.p,a=b.dataset.a;
+    if(a=="pr")start(p,null,5);else if(a=="ln")lesson(p);else if(a=="bd")bld(p,0);else pbl(p);
+  }});
+}
+function pbl(p){
+  var h='<div class="top"><h2>'+P[p]+' problems</h2><button class="btn alt" id="bk" style="font-size:14px;padding:6px 12px">Back</button></div>'+
+  '<p class="mut">Open a problem on LeetCode. A tick means you have answered it correctly in the app.</p>';
+  D.filter(function(d){return d[1]==p}).forEach(function(d){
+    h+='<div class="node" style="margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;gap:10px">'+
+    '<span>'+((S.pr&&S.pr[d[0]])?'✓ ':'')+d[0]+'</span>'+
+    '<a class="btn alt" style="font-size:14px;padding:6px 12px;text-decoration:none" target="_blank" rel="noopener" href="https://leetcode.com/problemset/?search='+encodeURIComponent(d[0])+'">LeetCode</a></div>';
+  });
+  app.innerHTML=h;on("bk",mapv);
+}
+function start(f,g,n){R={i:0,ok:0,xp:0,combo:0,seen:[],f:typeof f=="string"?f:null,g:g||null,n:n||5};next()}
+// [problem, pattern, question, correct, "wrong|wrong|wrong", explanation]
+var Q=[
+["Longest Substring Without Repeating Characters","win","In the sliding-window solution, s[right] is already inside the window. What do you do?","Move left forward until the duplicate leaves the window","Reset the window and set left = 0|Move right back by one|Sort the window and recount","Shrinking from the left keeps the window valid without losing the good part."],
+["Longest Substring Without Repeating Characters","win","Time and space of the optimal solution, with alphabet size k?","O(n) time, O(k) space","O(n²) time, O(1) space|O(n log n) time, O(n) space|O(k) time, O(n) space","Each index enters and leaves the window once; the map holds at most k characters."],
+["Minimum Window Substring","win","When do you move the left pointer?","While the window already contains every needed character","Every time a new character is added|Only when the window is longer than t|Once right reaches the end","Expand to become valid, then shrink while still valid to find the smallest window."],
+["Longest Repeating Character Replacement","win","When is the window valid?","window size − highest letter count ≤ k","window size ≤ k|number of distinct letters ≤ k|highest letter count ≤ k","Everything except the most frequent letter must be replaceable, and that count is the cost."],
+["Climbing Stairs","dp","What is the recurrence for ways(n)?","ways(n−1) + ways(n−2)","ways(n−1) × ways(n−2)|ways(n−1) + 1|2 × ways(n−1)","The last move was either a 1-step or a 2-step, so add both cases."],
+["Climbing Stairs","dp","What is the space-optimal version?","Two rolling variables, O(1) space","A full array of size n|A hash map of all subproblems|A recursion stack of depth n","Each state only reads the previous two, so keep just those."],
+["House Robber","dp","What is dp[i]?","max(dp[i−1], dp[i−2] + nums[i])","dp[i−1] + nums[i]|max(dp[i−1], dp[i−2]) + nums[i]|min(dp[i−1], dp[i−2]) + nums[i]","Skip house i, or rob it and add the best from two houses back."],
+["Coin Change","dp","Why does greedy (largest coin first) fail?","With coins 1, 3, 4 and amount 6, greedy gives 4+1+1 but 3+3 is better","Greedy is always slower than DP|Large coins can’t be reused|Greedy can’t handle amount 0","Local best choices don’t guarantee a global best for arbitrary coin sets."],
+["Coin Change","dp","How do you initialise the dp array?","dp[0] = 0 and every other entry = infinity","dp[0] = 1 and every other entry = 0|All entries = 0|dp[0] = 0 and every other entry = −1","Zero coins make amount 0; unreachable amounts must lose every min() comparison."],
+["Maximum Subarray","dp","What is the Kadane update?","cur = max(x, cur + x)","cur = cur + x always|cur = max(cur, x)|cur = min(x, cur + x)","If the running sum is negative, starting fresh at x is better."],
+["Longest Increasing Subsequence","dp","What is the best known time complexity?","O(n log n), binary searching a tails array","O(n)|O(n²) is optimal|O(n log² n)","Keep the smallest tail for each length and binary search where x fits."],
+["Longest Palindromic Substring","dp","Complexity of expand-around-center?","O(n²) time, O(1) space","O(n) time, O(1) space|O(n³) time, O(n) space|O(n log n) time, O(n) space","2n−1 centers, each expanding up to n characters, with no extra storage."],
+["Word Break","dp","Why memoise the recursive solution?","The same suffix is solved again and again from different splits","To sort the dictionary|To avoid using a set|Recursion is not allowed otherwise","Overlapping subproblems are the signal for DP."],
+["Search in Rotated Sorted Array","bs","How do you tell which half is sorted?","Compare nums[left] with nums[mid]","Compare nums[mid] with the target only|Compare nums[mid] with nums[mid+1]|Check whether the length is even","If nums[left] ≤ nums[mid], the left half has no rotation point."],
+["Valid Parentheses","stk","Why a stack instead of three counters?","Different bracket types must nest in the right order","Counters are slower|Strings can’t be indexed|Stacks use less memory","A counter can’t tell that ([)] is invalid."],
+["Linked List Cycle","ll","What does it prove when fast (2 steps) meets slow (1 step)?","A cycle exists","The list has even length|The cycle starts at the meeting point|The list is sorted","Inside a loop the gap closes by 1 each step, so they must meet."],
+["Remove Nth Node From End of List","ll","Why add a dummy head node?","Removing the head needs no special case","To make the list doubly linked|To reduce time to O(1)|To store the length","The dummy gives every real node a predecessor."],
+["Merge k Sorted Lists","heap","Time complexity with a min-heap, N total nodes?","O(N log k)","O(N × k)|O(N log N)|O(k log N)","The heap holds at most k heads, and each of N pops costs log k."],
+["Number of Islands","graph","How do you avoid revisiting cells without a visited set?","Overwrite visited land cells in place","Sort the grid first|Limit recursion depth|Use a trie","Flooding a cell to water marks it as seen for free."],
+["Course Schedule","graph","What does the problem reduce to?","Detecting a cycle in a directed graph","Finding a shortest path|Counting connected components|Counting leaf nodes","A prerequisite loop means the courses can never all be finished."],
+["Validate Binary Search Tree","tree","What is the classic wrong solution?","Comparing each node only with its direct children","Passing low and high bounds|Checking an in-order traversal|Using an explicit stack","A node deep in the right subtree can still be smaller than an ancestor."],
+["Kth Smallest Element in a BST","tree","Which traversal gives sorted order?","In-order","Pre-order|Post-order|Level-order","Left, node, right visits a BST in ascending order."],
+["Top K Frequent Elements","heap","Best time complexity?","O(n) with bucket sort, or O(n log k) with a size-k heap","O(n²)|O(k log n) always|O(log n)","Count first, then select the k largest counts."],
+["Find Median from Data Stream","heap","Which heap holds what?","Max-heap for the smaller half, min-heap for the larger half","Min-heap for the smaller half, max-heap for the larger half|One heap for everything|Two max-heaps","The two tops are the middle values."],
+["Meeting Rooms II","heap","What does the min-heap store?","End times of meetings currently using a room","Start times of all meetings|Room numbers|Meeting durations","The earliest end time tells you whether a room is free for the next meeting."],
+["Merge Intervals","gr","What is the first step?","Sort by start time","Sort by end time descending|Build a graph|Use a heap of durations","After sorting, overlapping intervals are adjacent."],
+["Best Time to Buy and Sell Stock","gr","What do you track while scanning?","The minimum price so far","The maximum price so far|The sum of all differences|The index of the largest price","The best sell today pairs with the cheapest earlier buy."],
+["Jump Game","gr","What state do you carry?","The farthest reachable index","The number of jumps used|A dp array of booleans only|The smallest jump value","If i exceeds the farthest reach, you are stuck."],
+["Word Search","bt","Which step makes it backtracking?","Unmarking the cell after the recursive call returns","Marking the cell before recursing|Sorting the letters|Starting from the corners","The same cell must be available again on other paths."],
+["Number of 1 Bits","bit","What does n & (n − 1) do?","Clears the lowest set bit","Sets the lowest bit|Flips all bits|Shifts right by one","Count how many times you can do it before n becomes 0."],
+["Missing Number","bit","Why does XOR work?","x ^ x = 0, so pairs cancel and the missing number is left","XOR sorts the array|XOR adds with carry|XOR counts set bits","XOR all indices 0..n with all values."],
+["Sum of Two Integers","bit","What do XOR and (AND shifted left by 1) give you?","The sum without carry, and the carry","The carry, and the sum without carry|The product and the sum|The AND and the OR","Repeat until the carry is 0."],
+["3Sum","two","How do you avoid duplicate triplets?","Sort, then skip equal values for the fixed number and both pointers","Store every triplet as a string in a set|Run the algorithm twice|Binary search each triple","Sorting puts duplicates next to each other so they are easy to skip."],
+["Container With Most Water","two","Which pointer do you move?","The one at the shorter line","The one at the taller line|Always the left one|Both","The shorter line limits the area; moving the taller can only hurt."],
+["Longest Consecutive Sequence","hash","When do you start counting a sequence?","Only if x − 1 is not in the set","For every number|Only for the smallest number overall|Only if x + 1 is in the set","This makes every sequence counted once, so the total is O(n)."],
+["Group Anagrams","hash","Which key groups anagrams?","Sorted letters, or a 26-letter count","Word length|First letter|Sum of character codes","Anagrams share the same letter multiset; sums can collide."],
+["Implement Trie (Prefix Tree)","trie","Cost of searching a word of length L?","O(L)","O(n) for n stored words|O(log n)|O(L × n)","You follow one child per character, regardless of how many words are stored."],
+["Binary Tree Level Order Traversal","tree","How do you know where one level ends?","Process queue.size() nodes at the start of each level","Use a separate stack|Insert a null marker only|Check the node values","Freeze the count first, then pop exactly that many."],
+["Encode and Decode Strings","arr","Why does joining the strings with a comma fail?","A string may contain a comma, so decoding is ambiguous","Commas use too much memory|Strings can’t be joined|Commas are slower than digits","A length prefix tells you exactly how many characters to read."],
+["Product of Array Except Self","arr","How do you avoid division?","Multiply a prefix product by a suffix product at each index","Check for zeros and divide|Sort the array first|Use a hash map of products","Two passes give O(n) time and O(1) extra space beyond the output."],
+["Find Minimum in Rotated Sorted Array","bs","When do you set lo = mid + 1?","When a[mid] is greater than a[hi]","When a[mid] is less than a[hi]|When a[mid] equals a[lo]|When a[mid] is the smallest so far","A bigger middle means the drop (the minimum) is to the right."],
+["Reorder List","ll","What is the first step?","Find the middle with slow and fast pointers","Reverse the whole list|Copy to an array and sort|Delete every second node","Then reverse the second half and merge the halves."],
+["Lowest Common Ancestor of a Binary Search Tree","tree","p and q are both smaller than the current node. Where do you go?","Left subtree","Right subtree|Return this node|Return null","The first node where p and q split to different sides is the LCA."],
+["Construct Binary Tree from Preorder and Inorder Traversal","tree","Why store inorder indexes in a hash map?","To find the root’s position in O(1) instead of scanning","To sort the traversal|To detect duplicate values|Recursion requires a map","It brings the total from O(n²) to O(n)."],
+["Design Add and Search Words Data Structure","trie","What is the worst case when the search word is all dots?","It explores every branch of the trie","O(1) because dots are skipped|O(L) like a normal search|It is not allowed","A dot branches into all children at every level."],
+["Clone Graph","graph","What does the visited map store?","Original node to its copy","Node to distance|Node to colour only|Edge to weight","Without it, cycles would loop forever and nodes would be copied twice."],
+["Pacific Atlantic Water Flow","graph","Why search uphill from the oceans instead of from every cell?","It avoids redoing a search from every single cell","Forward search gives wrong answers|Borders are reachable from every cell|BFS cannot be used on a grid","Two multi-source searches, then intersect."],
+["Graph Valid Tree","graph","Which edge count, plus connectivity, makes it a tree?","Exactly n − 1","At least n|Exactly n|Exactly n + 1","n − 1 edges and connected means no cycle."],
+["Number of Connected Components in an Undirected Graph","graph","With union-find, how do you count components?","Start at n and subtract 1 for every successful union","Count the edges|Count nodes with no edges|Count find() calls","Each union that joins two different sets removes one component."],
+["House Robber II","dp","How do you handle the circle?","Solve twice, without the first house and without the last, and take the max","Solve once and subtract the last house|Sort the houses|Double the array","The first and last houses are adjacent, so they can’t both be robbed."],
+["Palindromic Substrings","dp","How many centers do you try for a string of length n?","2n − 1 (odd and even)","n|n²|n / 2","Each character, plus each gap between two characters."],
+["Decode Ways","dp","What happens at a digit 0?","It is only valid as the second digit of 10 or 20","It maps to the letter Z|It can be skipped|It always adds dp[i−1]","A lone 0 makes the whole decoding impossible."],
+["Maximum Product Subarray","dp","Why track the minimum product as well as the maximum?","A negative number can turn the smallest product into the largest","Only to handle zeros|Kadane needs two arrays|The minimum is the answer when everything is negative","Update both max and min at every step."],
+["Longest Common Subsequence","dp","What is the transition when the two letters differ?","dp[i][j] = max(dp[i−1][j], dp[i][j−1])","dp[i−1][j−1] + 1|The min of the two neighbours|0","Drop a letter from one string or the other, whichever is better."],
+["Unique Paths","dp","What is the recurrence?","dp[r][c] = dp[r−1][c] + dp[r][c−1]","The product of those two|The max of those two|dp[r−1][c−1] + 1","You arrive from above or from the left."],
+["Combination Sum IV","dp","Which loop order counts different orderings as different?","Target outside, numbers inside","Numbers outside, target inside|Either, the result is the same|Sort first, then any order","The outer loop over targets lets every number be the last one used."],
+["Insert Interval","gr","Which intervals do you merge with the new one?","Every interval that overlaps it","Only the first overlap|Only those starting after it|All of them","Take the min start and max end across the overlapping run."],
+["Non-overlapping Intervals","gr","Sort by what for the greedy to work?","End time","Start time|Length|Value","Keeping the earliest-ending interval leaves the most room."],
+["Set Matrix Zeroes","mat","Why not zero rows immediately as you find zeros?","New zeros would be mistaken for original zeros","It changes the matrix size|Rows are read-only|It is slower","Mark first, fill afterwards."],
+["Spiral Matrix","mat","What goes wrong if you skip the boundary check before the bottom row?","A single remaining row gets added twice","The matrix is rotated|Nothing, the check is optional|The columns are skipped","Re-check top ≤ bottom and left ≤ right between sides."],
+["Rotate Image","mat","Why transpose and reverse rows instead of copying?","It rotates in place with O(1) extra space","It is the only way to rotate|Copying is incorrect|It runs in O(log n)","Transpose swaps across the diagonal; reversing each row finishes the turn."],
+["Binary Tree Maximum Path Sum","tree","What should each recursive call return to its parent?","The best path that goes down through one child only","The best path through both children|The sum of the whole subtree|The largest single node value in the subtree","A parent can only extend one branch, so only one side can continue upward."],
+["Serialize and Deserialize Binary Tree","tree","What must the string contain so the same tree can be rebuilt?","Null markers in a fixed traversal order","Only the node values, sorted|A map from each node to its parent|The height of the tree","Without null markers the shape of the tree is lost."],
+["Word Search II","trie","Why walk the grid with a trie instead of searching for each word separately?","One grid walk checks every word, and dead prefixes are pruned early","The trie sorts the grid|Words are shorter inside a trie|It avoids using DFS entirely","Many words share prefixes, so the grid is explored once for all of them."],
+["Alien Dictionary","graph","What does each edge in the graph represent?","Letter A comes before letter B, from the first difference in an adjacent word pair","Two letters that appear in the same word|Letters with the same frequency|Words that rhyme","Only the first differing position reveals the order of two letters."],
+["Merge Two Sorted Lists","ll","Why use a dummy head node?","So the first node needs no special case when attaching","To make the lists sorted|To count the nodes|To avoid recursion entirely","Attaching to dummy.next handles the empty-head case the same way as every other node."],
+["Same Tree","tree","What do you return when both current nodes are null?","true","false|null|the depth of the tree","Two empty trees are identical."],
+["Subtree of Another Tree","tree","What must match at a candidate node?","The whole subtree must be identical to the target tree","Only the root value|Only the height|Only the number of children","A subtree must match in structure and values, so reuse Same Tree at each candidate."],
+["Meeting Rooms","gr","After sorting by start time, what must be true of each pair of neighbours?","The next meeting must start at or after the previous one ends","The next meeting must be longer|Meetings must alternate in length|No meeting may start at time 0","Sorting by start puts any overlap between neighbouring meetings."],
+["Counting Bits","bit","Why is dp[i] = dp[i >> 1] + (i & 1) valid?","Removing the last bit of i gives a smaller number whose count is already known","Each number has exactly one set bit|Counts only grow by one|Shifting right doubles the count","i >> 1 drops the lowest bit, and i & 1 adds back whether it was set."],
+["Reverse Bits","bit","What does each loop iteration do?","Shifts the result left, then adds the lowest bit of n","Shifts n left and adds the highest bit|Swaps the two halves of n|Counts the set bits","Bits are read from the bottom of n and placed at the top of the result."],
+["Two Sum","hash","For each number x, what do you look up in the map?","Its complement, target minus x","The value x itself|The largest number seen so far|The index of x in the sorted array","Check for the complement first, then store x, so the same element is never used twice."],
+["Contains Duplicate","hash","What do you store while scanning the array?","The values seen so far, in a set","The indices of every pair|The sum of all values","The moment a value is already in the set, you have a duplicate."],
+["Valid Anagram","hash","How do you check that two strings use the same letters with the same counts?","Count the letters of each string and compare the counts","Compare only the first letter|Check that the first and last letters match|Reverse one string and compare the first character","Equal letter counts mean one string is a rearrangement of the other."],
+["Valid Palindrome","two","Where do the two pointers start?","One at each end, moving inward","Both at the start, moving right|One in the middle, expanding outward|Both at the end, moving left","Compare the outer characters, skip non-alphanumeric ones, and move inward."],
+["Reverse Linked List","ll","Which pointers do you need while reversing?","prev, current, and a saved next","Only the head and the tail|A stack holding every node|Two full copies of the list","Save next first, point current back at prev, then advance both."],
+["Invert Binary Tree","tree","What is the work at each node?","Swap its left and right children, then recurse into both","Return the sum of both subtrees|Only recurse into the left child|Copy the values into an array","The swap happens at each node, and the same rule then applies to each subtree."],
+["Maximum Depth of Binary Tree","tree","What is the recurrence for depth?","1 + max(depth(left), depth(right))","max(depth(left), depth(right))|depth(left) + depth(right)|1 + depth(left) only","Count this node, plus the deeper of its two subtrees; an empty node has depth 0."]
+];
+function sh(a){for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1)),t=a[i];a[i]=a[j];a[j]=t}return a}
+function wpick(l,f){var w=l.map(function(x){return 11-mast(f(x))}),t=w.reduce(function(a,b){return a+b},0),r=Math.random()*t,i=0;for(;i<l.length-1&&r>=w[i];i++)r-=w[i];return l[i]}
+function pick(){
+  var qs=Q.filter(function(q){return R.seen.indexOf(q[0]+q[2])<0&&(!R.f||q[1]==R.f)&&(!R.g||R.g.indexOf(q[0])>=0)}),ds=D.filter(function(d){return R.seen.indexOf(d[0])<0&&(!R.f||d[1]==R.f)&&(!R.g||R.g.indexOf(d[0])>=0)});
+  if(!qs.length&&!ds.length)return null;
+  if(qs.length&&(Math.random()<.7||!ds.length)){
+    var q=wpick(qs,function(x){return x[1]});R.seen.push(q[0]+q[2]);
+    var o=sh([q[3]].concat(q[4].split("|")));
+    return {m:1,name:q[0],pat:q[1],stmt:q[2],opts:o,right:o.indexOf(q[3]),expl:q[5]};
+  }
+  var d=wpick(ds,function(x){return x[1]});R.seen.push(d[0]);
+  var c=[d[1]];if(d[5])c.push(d[5]);
+  sh(Object.keys(P)).forEach(function(p){if(c.length<4&&c.indexOf(p)<0)c.push(p)});c=sh(c);
+  return {name:d[0],pat:d[1],stmt:d[2],opts:c.map(function(p){return P[p]}),right:c.indexOf(d[1]),sig:d[3],tip:d[4],trap:d[5]?d[6]:""};
+}
+function next(){
+  if(R.i>=R.n)return done();
+  var q=pick();if(!q)return done();R.q=q;R.i++;R.ans=false;R.c=q.opts.map(function(_,i){return i});R.t0=Date.now();
+  var h='<div class="top"><span>Round '+R.i+'/'+R.n+'</span><span>Combo ×'+R.combo+' · +'+R.xp+' XP</span><button class="btn alt" id="ex" style="font-size:14px;padding:4px 12px">Exit</button></div><div class="bar"><i id="tb"></i></div>'+
+  '<div class="q"><small>'+(q.m?q.name:'Which pattern solves this?')+'</small>'+q.stmt+'</div><div class="opts">';
+  q.opts.forEach(function(o,i){h+='<button class="opt" data-i="'+i+'"><kbd>'+(i+1)+'</kbd>'+o+'</button>'});
+  app.innerHTML=h+'</div><div id="fb"></div>';on("ex",function(){clearInterval(tm);home()});
+  Array.prototype.forEach.call(app.querySelectorAll(".opt"),function(b){b.onclick=function(){answer(+b.dataset.i)}});
+  clearInterval(tm);tm=setInterval(function(){var f=1-(Date.now()-R.t0)/TL,b=document.getElementById("tb");
+    if(f<=0){clearInterval(tm);answer(null)}else if(b)b.style.width=f*100+"%"},100);
+}
+function answer(i){
+  if(R.ans)return;R.ans=true;clearInterval(tm);
+  var q=R.q,ok=i===q.right,left=Math.max(0,TL-(Date.now()-R.t0))/1000,g=0;
+  S.st=S.st||{};var sp_=S.st[q.pat]=S.st[q.pat]||[0,0];sp_[0]++;if(ok)sp_[1]++;
+  if(ok){R.combo++;R.ok++;g=10+Math.round(left)+Math.min(R.combo,10)*2+(q.trap?15:0);R.xp+=g;S.xp+=g;S.m[q.pat]=Math.min(10,mast(q.pat)+1);(S.pr=S.pr||{})[q.name]=1;if(R.combo>S.best)S.best=R.combo}
+  else{R.combo=0;S.m[q.pat]=Math.max(0,mast(q.pat)-1)}
+  var d=new Date(),td=d.toDateString(),y=new Date(d-864e5).toDateString();
+  if(S.last!==td){S.streak=S.last===y?S.streak+1:1;S.last=td}
+  save();
+  Array.prototype.forEach.call(app.querySelectorAll(".opt"),function(b){b.disabled=true;var n=+b.dataset.i;if(n===q.right)b.classList.add("ok");else if(n===i)b.classList.add("no")});
+  var head=(ok?'Correct +'+g+' XP':(i!==null?'Not quite':'Time’s up'))+'. '+q.name+' · '+P[q.pat]+'.',body;
+  if(q.m)body='<p style="margin:8px 0 0">'+q.expl+'</p>';
+  else{var st=q.stmt;q.sig.split("|").forEach(function(s){st=st.replace(s,"<mark>"+s+"</mark>")});
+    body='<p style="margin:8px 0 4px">'+st+'</p><p class="mut" style="margin:0"><b>Template:</b> '+q.tip+'</p>'+(q.trap?'<div class="trap"><b>Trap.</b> '+q.trap+'</div>':'');}
+  document.getElementById("fb").innerHTML='<div class="rev'+(ok?'':' bad')+'"><b>'+head+'</b>'+body+'</div>'+
+  '<div class="row"><button class="btn" id="nx">'+(R.i>=R.n?'Finish':'Next')+'</button><a class="btn alt" style="text-decoration:none" target="_blank" rel="noopener" href="https://leetcode.com/problemset/?search='+encodeURIComponent(q.name)+'">Solve on LeetCode</a></div>';
+  var nx=document.getElementById("nx");nx.onclick=next;nx.focus();
+}
+function done(){
+  var f=R.f,g=R.g,n=R.n;
+  app.innerHTML='<h1>'+R.ok+'/'+R.i+'</h1><p>You earned <b>'+R.xp+' XP</b>. Streak: '+S.streak+' day'+(S.streak==1?'':'s')+'.</p>'+
+  '<button class="btn" id="again" style="width:100%;font-size:22px;padding:20px">Play again</button>'+
+  '<p style="margin-top:20px;text-align:center"><span class="lnk" id="hm">Home</span></p>';
+  on("again",function(){start(f,g,n)});on("hm",home);
+}
+// Learn mode. Each lesson: idea, signals, template, then a ladder of problems (easy to hard).
+// Step options: o[0] is the correct answer (shuffled when shown).
+var L={
+win:{t:"Sliding Window",idea:"You look at a contiguous chunk of an array or string. Instead of re-checking every chunk from scratch, you slide the chunk: add the new element on the right, drop old elements from the left.",
+sig:["contiguous subarray or substring","longest, shortest or maximum of a chunk","at most k, no repeats, exactly k distinct"],
+code:"int left = 0, best = 0;\nfor (int right = 0; right < (int)s.size(); right++) {\n    add(s[right]);                      // 1. expand\n    while (windowIsInvalid()) {         // 2. shrink\n        remove(s[left]);\n        left++;\n    }\n    best = max(best, right - left + 1); // 3. record\n}",
+steps:[
+{n:"Maximum Sum Subarray of Size K",d:"Easy",s:"Find the maximum sum of any subarray of exactly k elements.",q:"Is the window size fixed or variable?",o:["Fixed: add one element, remove one","Variable: shrink while a condition fails","No window, just sort"],a:"Fixed window: add nums[right]; once the size passes k, subtract nums[left] and move left. An if replaces the while loop."},
+{n:"Longest Substring Without Repeating Characters",d:"Medium",s:"Find the length of the longest substring with no repeated characters.",q:"What is the shrink condition?",o:["While the new character is already in the window","While the window is longer than k","Never shrink, only expand"],a:"Keep a count map. After adding s[right], while its count is above 1, remove s[left] and move left. Record the length after shrinking."},
+{n:"Longest Repeating Character Replacement",d:"Medium",s:"Find the longest substring you can make all one letter by replacing at most k characters.",q:"When must the window shrink?",o:["When size − highest letter count is more than k","When the window has more than k distinct letters","When the highest letter count passes k"],a:"Track letter counts and the max count. The cost of making the window uniform is size − maxCount. If that exceeds k, move left."},
+{n:"Minimum Window Substring",d:"Hard",s:"Find the smallest substring of s that contains every character of t.",q:"When do you record the best answer?",o:["While shrinking, as long as the window is still valid","While expanding, since bigger is better","Once, after the loop ends"],a:"Flip the template: expand until the window is valid, then while valid, record the length and shrink. The answer is the smallest valid window."}]},
+two:{t:"Two Pointers",idea:"Two indexes walk through the data, usually from both ends of a sorted array. Each move throws away candidates that cannot be the answer, so one pass replaces nested loops.",
+sig:["sorted array","pair or triplet with a target sum","palindrome or symmetric check","maximize or minimize between two positions"],
+code:"int l = 0, r = (int)a.size() - 1;\nwhile (l < r) {\n    if (good(a[l], a[r])) { record(l, r); l++; r--; }\n    else if (tooSmall(a[l], a[r])) l++;  // need bigger\n    else r--;                            // need smaller\n}",
+steps:[
+{n:"Valid Palindrome",d:"Easy",s:"Check if a string reads the same forwards and backwards, ignoring non-alphanumeric characters.",q:"Where do the pointers start and move?",o:["One at each end, moving inward","Both at the start, moving right","One in the middle, expanding out"],a:"Compare s[l] and s[r]; skip junk characters; if they differ return false, else move both inward."},
+{n:"Two Sum II (sorted input)",d:"Easy",s:"In a sorted array, find two numbers that add up to a target.",q:"The current sum is too small. Which pointer moves?",o:["Left pointer right, to get a bigger number","Right pointer left, to get a bigger number","Neither, use a hash map"],a:"Sorted order tells you the direction: too small means l += 1, too big means r −= 1."},
+{n:"Container With Most Water",d:"Medium",s:"Given vertical lines at each index, pick two that hold the most water.",q:"Which pointer do you move?",o:["The one at the shorter line","The one at the taller line","Always the left one"],a:"Area is limited by the shorter line. Moving the taller one can only shrink the width without raising the limit. Track the best area."},
+{n:"3Sum",d:"Medium",s:"Find all unique triplets in an array that sum to zero.",q:"How do you reduce 3Sum to the template?",o:["Sort, fix one number, run two pointers on the rest","Run three nested loops","Use one pointer and a stack"],a:"For each i, do the two-sum template on the right side with target −nums[i]. Skip equal values to avoid duplicate triplets."}]},
+hash:{t:"Hash Map",idea:"Trade memory for speed. Remember what you have already seen, so each question like “have I seen this?” or “what is the count?” takes O(1) instead of another loop.",
+sig:["find a pair or complement","duplicates or frequency","group items by a shared property","need O(n) and the input is unsorted"],
+code:"unordered_map<int,int> seen;\nfor (int i = 0; i < (int)a.size(); i++) {\n    int need = target - a[i];\n    if (seen.count(need))               // lookup before insert\n        return {seen[need], i};\n    seen[a[i]] = i;\n}",
+steps:[
+{n:"Contains Duplicate",d:"Easy",s:"Return true if any value appears at least twice in the array.",q:"What do you store?",o:["Values seen so far, in a set","Every pair of indices","The sorted array"],a:"If x is already in the set, return true; otherwise add it. Use unordered_set&lt;int&gt;; it is a map without values."},
+{n:"Two Sum",d:"Easy",s:"Return the indices of two numbers that add up to a target.",q:"What do you look up for each x?",o:["The complement, target − x","The value x itself","The largest number so far"],a:"Check for the complement before inserting x. Store value → index so you can return indices."},
+{n:"Group Anagrams",d:"Medium",s:"Group strings that are rearrangements of each other.",q:"What should the map key be?",o:["Sorted letters (or a 26-letter count)","The word length","The first letter"],a:"Anagrams share the same letters, so one canonical key groups them: key → list of words."},
+{n:"Longest Consecutive Sequence",d:"Medium",s:"Find the length of the longest run of consecutive integers in an unsorted array, in O(n).",q:"When do you start counting a run?",o:["Only if x − 1 is not in the set","For every number","Only for the smallest number"],a:"Put all numbers in a set. Start from run starts only, then walk x+1, x+2... so each number is visited once."}]},
+bs:{t:"Binary Search",idea:"If the search space is sorted or has a yes/no switch point, cut it in half each step. This works on arrays and also on answers, such as a speed or capacity.",
+sig:["sorted or rotated sorted array","O(log n) is required","minimum value that satisfies a condition","find the first or last position"],
+code:"int lo = 0, hi = (int)a.size() - 1;\nwhile (lo <= hi) {\n    int mid = lo + (hi - lo) / 2;       // avoids overflow\n    if (a[mid] == target) return mid;\n    if (a[mid] < target) lo = mid + 1;\n    else hi = mid - 1;\n}\nreturn -1;",
+steps:[
+{n:"Binary Search",d:"Easy",s:"Find the index of a target in a sorted array, or −1.",q:"If a[mid] is smaller than the target, what next?",o:["lo = mid + 1","hi = mid − 1","return −1"],a:"The target can only be to the right of mid. Always move past mid to avoid an infinite loop."},
+{n:"Find Minimum in Rotated Sorted Array",d:"Medium",s:"Find the minimum element in a sorted array that was rotated.",q:"What do you compare a[mid] with?",o:["a[hi]","a[mid + 1] only","The target"],a:"If a[mid] > a[hi], the minimum is to the right (lo = mid + 1). Otherwise it is at mid or left (hi = mid)."},
+{n:"Search in Rotated Sorted Array",d:"Medium",s:"Find a target in a sorted array that was rotated, in O(log n).",q:"How do you pick which half to keep?",o:["Find the sorted half, then check if the target lies in it","Always search the left half first","Sort the array first"],a:"If a[lo] ≤ a[mid], the left half is sorted. If the target is in its range, go left; otherwise go right."},
+{n:"Koko Eating Bananas",d:"Hard",s:"Find the minimum eating speed so all banana piles finish within h hours.",q:"What are you binary searching over?",o:["The speed (the answer space), checking if it is feasible","The pile sizes","The hours"],a:"Search speeds from 1 to max(pile). For each mid, compute hours needed; if ≤ h, try slower (hi = mid), else faster."}]},
+tree:{t:"Tree DFS/BFS",idea:"A tree is a node plus two smaller trees. Solve one node by trusting the recursion for its children, then combine. Use BFS with a queue when the answer is organised by level.",
+sig:["binary tree or BST","every node, path, depth or subtree","level by level","root-to-leaf"],
+code:"int dfs(TreeNode* node) {\n    if (!node) return BASE;             // usually 0, nullptr or true\n    int left = dfs(node->left);\n    int right = dfs(node->right);\n    return combine(left, right, node);\n}",
+steps:[
+{n:"Maximum Depth of Binary Tree",d:"Easy",s:"Return the number of nodes along the longest root-to-leaf path.",q:"What does dfs return for an empty node, and how do you combine?",o:["0, and 1 + max(left, right)","1, and left + right","None, and max(left, right)"],a:"BASE = 0. combine = 1 + max(left, right)."},
+{n:"Invert Binary Tree",d:"Easy",s:"Swap the left and right child of every node.",q:"What does the work at each node?",o:["Swap its two children, then recurse into both","Return the sum of both subtrees","Only recurse into the left child"],a:"The combine step is a swap. The recursion handles the rest of the tree."},
+{n:"Validate Binary Search Tree",d:"Medium",s:"Check that every node’s left subtree is smaller and right subtree is larger.",q:"What extra information must be passed down?",o:["Allowed low and high bounds","The parent’s value only","The tree depth"],a:"dfs(node, low, high): the node must be between the bounds; left gets (low, node.val), right gets (node.val, high)."},
+{n:"Binary Tree Maximum Path Sum",d:"Hard",s:"Find the maximum sum of any path in a binary tree.",q:"What should dfs return to its parent?",o:["The best path going down one side only","The best path through both children","The sum of all nodes"],a:"A parent can only extend one branch, so return node + max(0, left, right). Update a global best with node + left + right."}]},
+dp:{t:"Dynamic Programming",idea:"When a problem has choices and the same subproblems repeat, define a state, write how it depends on smaller states, and fill them in order. Say the three words out loud: state, recurrence, base case.",
+sig:["count the number of ways","minimum or maximum cost","can you reach, can you split","subsequence or substring comparisons"],
+code:"// 1. state: dp[i] means ...\n// 2. recurrence: dp[i] from earlier states\n// 3. base: dp[0] = ...\nvector<int> dp(n + 1, 0);\ndp[0] = BASE;\nfor (int i = 1; i <= n; i++) {\n    dp[i] = combine(dp[i-1], i >= 2 ? dp[i-2] : 0);\n}\nreturn dp[n];",
+steps:[
+{n:"Climbing Stairs",d:"Easy",s:"Count the distinct ways to reach step n taking 1 or 2 steps at a time.",q:"What does dp[i] mean, and how is it built?",o:["Ways to reach step i = dp[i−1] + dp[i−2]","Fewest steps to reach i = dp[i−1] + 1","Ways to reach i = dp[i−1] × dp[i−2]"],a:"The last move was a 1-step or a 2-step, so add both cases. Base: dp[0] = dp[1] = 1."},
+{n:"House Robber",d:"Medium",s:"Maximize money from houses in a row without robbing two adjacent houses.",q:"What is the choice at house i?",o:["Skip it, or rob it and add dp[i−2]","Always rob it","Rob the larger neighbour"],a:"dp[i] = max(dp[i−1], dp[i−2] + nums[i]). Only the last two values matter, so it can use O(1) space."},
+{n:"Coin Change",d:"Medium",s:"Find the fewest coins needed to make an amount, or −1.",q:"What is the transition for amount a?",o:["dp[a] = 1 + min(dp[a − coin]) over every coin","dp[a] = dp[a − 1] + 1","Always take the largest coin"],a:"Base: dp[0] = 0, everything else infinity. Each amount tries every coin as the last coin used."},
+{n:"Longest Common Subsequence",d:"Medium",s:"Find the length of the longest common subsequence of two strings.",q:"What is dp[i][j]?",o:["LCS length of the first i letters of A and first j letters of B","Whether A[i] equals B[j]","The number of shared letters"],a:"If A[i−1] == B[j−1], dp[i][j] = dp[i−1][j−1] + 1; otherwise max(dp[i−1][j], dp[i][j−1]). Two strings means a 2D table."}]},
+ll:{t:"Linked Lists",idea:"Linked list problems are pointer surgery. Two moves cover most of them: a dummy head node so edge cases vanish, and two pointers moving at different speeds or with a gap.",
+sig:["singly linked list","middle, from the end, or cycle","in place or O(1) memory"],
+code:["ListNode dummy(0, head);","ListNode *slow = &dummy, *fast = &dummy;","while (fast && fast->next) {","    slow = slow->next;          // 1 step","    fast = fast->next->next;    // 2 steps","}","// slow is now at the middle"].join("\n"),
+steps:[
+{n:"Reverse Linked List",d:"Easy",s:"Reverse a singly linked list.",q:"Which pointers do you juggle?",o:["prev, cur and a saved next","Only head and tail","A stack of every node"],a:"Save cur->next, point cur->next at prev, then advance prev and cur."},
+{n:"Remove Nth Node From End of List",d:"Medium",s:"Remove the nth node from the end of a linked list in one pass.",q:"Why move fast n steps ahead first?",o:["So the gap between the pointers equals n","So fast reaches the middle","To count the length"],a:"When fast reaches the end, slow sits right before the node to delete. The dummy head handles removing the first node."},
+{n:"Reorder List",d:"Medium",s:"Reorder L0, L1, ..., Ln into L0, Ln, L1, Ln−1, ... in place.",q:"Which three tricks combine?",o:["Find the middle, reverse the second half, merge alternately","Sort the list, then relink","Copy nodes to a map and rebuild"],a:"Each step is a template you already know: slow/fast, reverse, then weave the two halves."},
+{n:"Merge k Sorted Lists",d:"Hard",s:"Merge k sorted linked lists into one sorted list.",q:"How do you pick the next node?",o:["A min-heap of the k current heads","Compare all k heads every time","Concatenate everything and sort"],a:"The heap gives the smallest head in O(log k). Pop it, append it, push its next node."}]},
+trie:{t:"Tries",idea:"A trie stores strings one character per level, so shared prefixes are stored once. Operations cost the word length, not the number of words.",
+sig:["prefix or startsWith","autocomplete","search many words in a grid","wildcards in a word"],
+code:["struct Node {","    Node* next[26] = {};","    bool end = false;","};","void insert(Node* root, const string& w) {","    Node* cur = root;","    for (char c : w) {","        if (!cur->next[c - 'a']) cur->next[c - 'a'] = new Node();","        cur = cur->next[c - 'a'];","    }","    cur->end = true;","}"].join("\n"),
+steps:[
+{n:"Implement Trie (Prefix Tree)",d:"Medium",s:"Design insert, search and startsWith for strings.",q:"How does search differ from startsWith?",o:["search also requires the end flag on the last node","startsWith requires the end flag","They are the same"],a:"Both walk the characters. Only a full-word search checks cur->end."},
+{n:"Design Add and Search Words Data Structure",d:"Medium",s:"Add words and search them, where a dot can match any letter.",q:"How do you handle a dot?",o:["DFS: try every child at that node","Skip the character","Treat it as the letter a"],a:"For normal letters follow one child; for a dot recurse into all children and return true if any works."},
+{n:"Word Search II",d:"Hard",s:"Find all words from a list that can be traced through adjacent cells in a grid.",q:"Why build a trie of the words first?",o:["One grid DFS searches all words and prunes dead prefixes","To sort the words","To avoid DFS"],a:"Walk the trie while you walk the grid; stop as soon as the current path is not a prefix of any word."}]},
+heap:{t:"Heap / Priority Queue",idea:"A heap hands you the smallest or largest item in O(log n). Use it when you repeatedly need the current best of a changing set, or the k best out of many.",
+sig:["k largest, k smallest, k most frequent","median of a stream","merge k sorted","always take the best next"],
+code:["priority_queue<int, vector<int>, greater<int>> minHeap;  // smallest on top","for (int x : a) {","    minHeap.push(x);","    if ((int)minHeap.size() > k) minHeap.pop();   // keep the k largest","}","// minHeap.top() is the kth largest"].join("\n"),
+steps:[
+{n:"Top K Frequent Elements",d:"Medium",s:"Return the k most frequent elements of an array.",q:"Which heap, and what size?",o:["Min-heap of size k: the weakest kept item is evicted","Max-heap of size n","Min-heap of size n"],a:"Count with a map, push (count, value), and pop whenever the size exceeds k. O(n log k)."},
+{n:"Meeting Rooms II",d:"Medium",s:"Find the minimum number of rooms needed for a set of meeting intervals.",q:"What does the heap hold?",o:["End times of meetings in progress","Start times of all meetings","Room numbers"],a:"Sort by start. If the earliest end time is at or before the new start, reuse that room (pop); push the new end. The heap size is the answer."},
+{n:"Find Median from Data Stream",d:"Hard",s:"Support adding numbers and reading the median at any time.",q:"How do two heaps split the numbers?",o:["Max-heap for the lower half, min-heap for the upper half","Both hold every number","One sorted heap"],a:"Keep the sizes within 1 of each other. The median is a top, or the average of both tops."}]},
+graph:{t:"Graphs & Grids",idea:"A graph is nodes plus edges, and a grid is a graph whose neighbours are up, down, left and right. Explore with DFS or BFS and mark visited so nothing is processed twice.",
+sig:["grid of land and water","connected components or islands","prerequisites or dependencies","valid tree or cycle"],
+code:["void dfs(int r, int c, vector<vector<char>>& g) {","    if (r < 0 || c < 0 || r >= (int)g.size() || c >= (int)g[0].size() || g[r][c] != '1') return;","    g[r][c] = '0';                       // mark visited","    dfs(r + 1, c, g); dfs(r - 1, c, g);","    dfs(r, c + 1, g); dfs(r, c - 1, g);","}"].join("\n"),
+steps:[
+{n:"Number of Islands",d:"Medium",s:"Count connected groups of land cells in a grid of 1s and 0s.",q:"What starts a new island?",o:["An unvisited land cell found by the scan","Every land cell","Every water cell"],a:"Scan every cell. On unvisited land, count++ and flood-fill the whole island."},
+{n:"Clone Graph",d:"Medium",s:"Return a deep copy of a connected undirected graph given one node.",q:"What is the map for?",o:["Old node to its clone, so each is copied once","Counting edges","Sorting neighbours"],a:"Create the clone when first seen, store it in the map, then clone the neighbours. The map also stops infinite loops."},
+{n:"Course Schedule",d:"Medium",s:"Given prerequisite pairs, decide whether all courses can be finished.",q:"What are you detecting?",o:["A cycle in a directed graph","The shortest path","The largest component"],a:"Topological sort: repeatedly remove nodes with in-degree 0. If some remain, there is a cycle."},
+{n:"Graph Valid Tree",d:"Medium",s:"Given n nodes and undirected edges, check whether they form a valid tree.",q:"What counting rule helps?",o:["Exactly n − 1 edges and connected","Any n edges","Exactly n + 1 edges"],a:"With n − 1 edges, being connected is equivalent to having no cycle. Check with union-find or one DFS."}]},
+gr:{t:"Greedy & Intervals",idea:"Greedy takes the best local choice and never looks back; it works when a simple rule provably holds. For intervals the rule is almost always: sort first, then sweep once.",
+sig:["can you reach","minimum number to remove or cover","merge or overlapping intervals","clear local rule for max or min"],
+code:["sort(v.begin(), v.end());                 // sort by start (or by end)","vector<vector<int>> out;","for (auto& cur : v) {","    if (out.empty() || out.back()[1] < cur[0])","        out.push_back(cur);                   // no overlap","    else","        out.back()[1] = max(out.back()[1], cur[1]);  // overlap: extend","}"].join("\n"),
+steps:[
+{n:"Jump Game",d:"Medium",s:"Each value is your max jump length; can you reach the last index?",q:"What single value do you track?",o:["The farthest index reachable so far","The number of jumps used","The smallest jump"],a:"If i goes past the farthest reach you are stuck; otherwise update farthest = max(farthest, i + nums[i])."},
+{n:"Merge Intervals",d:"Medium",s:"Merge all overlapping intervals.",q:"What must you do before the sweep?",o:["Sort by start time","Sort by length","Build a graph"],a:"After sorting, an interval overlaps the last output one only if its start is at or before that end."},
+{n:"Insert Interval",d:"Medium",s:"Insert a new interval into a sorted list of non-overlapping intervals.",q:"How do you merge the new interval?",o:["Min of starts and max of ends over everything that overlaps","Replace the first overlap","Append it and stop"],a:"Three phases: copy those ending before, merge the overlapping ones, copy the rest."},
+{n:"Non-overlapping Intervals",d:"Medium",s:"Find the minimum number of intervals to remove so the rest do not overlap.",q:"Sort by what, and which interval do you keep?",o:["Sort by end; keep the one that ends earliest","Sort by start; keep the longest","Sort by length; keep the shortest"],a:"Ending earliest leaves the most room. Count every interval that starts before the last kept end."}]},
+mat:{t:"Matrix",idea:"Matrix problems are index bookkeeping. Decide the traversal order, keep boundaries or markers, and reuse the matrix itself for O(1) extra space where you can.",
+sig:["in place","spiral, diagonal or layer order","rows and columns set together"],
+code:["int top = 0, bottom = m - 1, left = 0, right = n - 1;","while (top <= bottom && left <= right) {","    for (int c = left; c <= right; c++) out.push_back(a[top][c]);","    top++;","    for (int r = top; r <= bottom; r++) out.push_back(a[r][right]);","    right--;","    // then the bottom row (if top <= bottom) and left column (if left <= right)","}"].join("\n"),
+steps:[
+{n:"Rotate Image",d:"Medium",s:"Rotate an n × n matrix 90 degrees clockwise in place.",q:"Which two steps rotate it?",o:["Transpose, then reverse each row","Reverse each column, then sort","Swap rows with columns once"],a:"Transpose (swap a[i][j] with a[j][i]), then reverse every row."},
+{n:"Spiral Matrix",d:"Medium",s:"Return all elements of a matrix in spiral order.",q:"What must you re-check after each side?",o:["That the remaining rows and columns still exist","That the matrix is square","Nothing, loop four times"],a:"After finishing the top row and right column, verify top ≤ bottom and left ≤ right before the other two sides."},
+{n:"Set Matrix Zeroes",d:"Medium",s:"If a cell is zero, set its entire row and column to zero in place.",q:"How do you get O(1) extra space?",o:["Use the first row and column as markers","Copy the matrix","Store zero positions in a set"],a:"Record whether the first row and column themselves had zeros, mark the rest in them, then fill."}]},
+bit:{t:"Bit Manipulation",idea:"Bit tricks work on the binary form of numbers. XOR cancels equal pairs, n & (n − 1) clears the lowest set bit, and shifts double or halve a number.",
+sig:["without using + or −","every element appears twice except one","count or flip bits","O(1) space"],
+code:["int count = 0;","while (n) {","    n &= (n - 1);   // clear the lowest set bit","    count++;","}","// XOR facts: a ^ a == 0, a ^ 0 == a"].join("\n"),
+steps:[
+{n:"Number of 1 Bits",d:"Easy",s:"Count the set bits in an integer.",q:"What does n & (n − 1) do?",o:["Clears the lowest set bit","Sets the lowest bit","Flips all bits"],a:"Repeat until n is 0 and count the iterations."},
+{n:"Missing Number",d:"Easy",s:"An array holds n distinct numbers from 0 to n; find the missing one.",q:"Why does XOR find it?",o:["Equal pairs cancel to 0, leaving the missing number","XOR sorts the array","XOR adds the numbers"],a:"XOR all indices 0..n with all values."},
+{n:"Sum of Two Integers",d:"Medium",s:"Add two integers without using + or −.",q:"What do XOR and AND give you?",o:["XOR is the sum without carry; (a & b) << 1 is the carry","XOR is the carry","AND is the sum"],a:"Repeat a = a ^ b, b = carry until the carry is 0."}]}
+};
+function esc(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;")}
+function on(id,f){document.getElementById(id).onclick=f}
+function learn(){
+  clearInterval(tm);R=null;S.l=S.l||{};
+  var h='<div class="top"><h2>All patterns</h2><button class="btn alt" id="bk" style="font-size:15px;padding:6px 14px">Back</button></div><p class="mut">Each lesson gives you the template, then walks up from easy to hard so you see how it bends.</p><div class="map">';
+  Object.keys(L).forEach(function(p){var n=L[p].steps.length,d=Math.min(n,S.l[p]||0);
+    h+='<button class="node" data-p="'+p+'" style="text-align:left;font:inherit;color:inherit;cursor:pointer"><b>'+L[p].t+'</b><div class="m"><i style="width:'+d/n*100+'%;background:var(--acc)"></i></div><span>'+d+'/'+n+' problems</span></button>'});
+  app.innerHTML=h+'</div><p class="mut">Stack and backtracking lessons are next.</p>';
+  on("bk",home);Array.prototype.forEach.call(app.querySelectorAll(".node"),function(b){b.onclick=function(){lesson(b.dataset.p)}});
+}
+function lesson(p){
+  var l=L[p],h='<div class="top"><h2>'+l.t+'</h2><button class="btn alt" id="bk" style="font-size:15px;padding:6px 14px">My path</button></div>'+
+  '<p>'+l.idea+'</p><p><b>Spot it when you see:</b></p><ul>'+l.sig.map(function(x){return '<li>'+x+'</li>'}).join("")+'</ul>'+
+  '<p><b>The template</b> (C++):</p><pre>'+esc(l.code)+'</pre>'+
+  '<p class="mut">Every problem below is this skeleton with one or two parts swapped. Your job is to find which parts.</p>'+
+  '<div class="row"><button class="btn" id="st">Start the ladder</button><button class="btn alt" id="pr">Quiz</button>'+''+'</div>';
+  app.innerHTML=h;on("bk",mapv);on("st",function(){stepv(p,0)});on("pr",function(){start(p)});
+}
+function stepv(p,i){
+  var l=L[p],st=l.steps[i],n=l.steps.length,o=sh(st.o.slice());
+  var h='<div class="top"><span>'+l.t+' · problem '+(i+1)+' of '+n+'</span><span class="tag">'+st.d+'</span></div>'+
+  '<div class="q"><small>'+st.n+'</small>'+st.s+'</div><p><b>'+st.q+'</b></p><div class="opts">';
+  o.forEach(function(x,k){h+='<button class="opt" data-k="'+k+'">'+x+'</button>'});
+  app.innerHTML=h+'</div><div id="fb" style="margin-top:14px"></div><p><button class="btn alt" id="tp" style="font-size:14px;padding:4px 12px">Show template</button></p><div id="tpl"></div>';
+  on("tp",function(){document.getElementById("tpl").innerHTML='<pre>'+esc(l.code)+'</pre>'});
+  Array.prototype.forEach.call(app.querySelectorAll(".opt"),function(b){b.onclick=function(){
+    var ok=o[+b.dataset.k]===st.o[0];
+    Array.prototype.forEach.call(app.querySelectorAll(".opt"),function(c){c.disabled=true;var t=o[+c.dataset.k];if(t===st.o[0])c.classList.add("ok");else if(c===b)c.classList.add("no")});
+    if((S.l[p]||0)<=i){S.l[p]=i+1;if(ok)S.xp+=10;save()}
+    document.getElementById("fb").innerHTML='<div class="rev'+(ok?'':' bad')+'"><b>'+(ok?'Right.':'Not quite. The highlighted answer is correct.')+'</b><p style="margin:8px 0 0"><b>How the template adapts:</b> '+st.a+'</p></div>'+
+    '<button class="btn" id="nx">'+(i+1<n?'Next problem':(BL[p]?'Start the build':'Finish lesson'))+'</button>';
+    var nx=document.getElementById("nx");nx.onclick=function(){i+1<n?stepv(p,i+1):(BL[p]?bld(p,0,true):fin(p))};nx.focus();
+  }});
+}
+function fin(p){
+  app.innerHTML='<h1>'+L[p].t+' ✓</h1><p>You walked the ladder from easy to hard. Now test whether you can spot it cold.</p><div class="row"><button class="btn" id="pr">Quiz</button><button class="btn alt" id="rv">Review lesson</button><button class="btn alt" id="bk">My path</button></div>';
+  on("pr",function(){start(p)});on("rv",function(){lesson(p)});on("bk",mapv);
+}
+// Block builder: you pick one block per role; the app runs the assembled logic on test inputs and compares with brute force.
+function cnt(a){var m={};a.forEach(function(x){m[x]=(m[x]||0)+1});return m}
+function mx(w){var m=cnt(w),b=0;for(var k in m)b=Math.max(b,m[k]);return b}
+function cont(w,t){var a=cnt(w),b=cnt(t.split(""));for(var k in b)if((a[k]||0)<b[k])return false;return true}
+function sum(w){return w.reduce(function(a,b){return a+b},0)}
+function each(a,f){var n=a.length,o=[];for(var i=0;i<n;i++)for(var j=i+1;j<=n;j++)o.push(a.slice(i,j));return o}
+var HOW=["while the condition holds","once (if)"];
+function how(){return {q:"Shrink how often?",o:[{t:"while the condition holds",m:"while"},{t:"once (if)",m:"if"}]}}
+var BL={win:[
+{n:"Maximum Sum Subarray of Size K",s:"Find the maximum sum of any subarray of exactly k elements.",best:"max",
+ roles:[{q:"Shrink when…",o:[{t:"window size > k",f:function(w,a){return w.length>a}},{t:"window size ≥ k",f:function(w,a){return w.length>=a},w:"This keeps only k−1 elements, so a full window never exists."},{t:"window sum > k",f:function(w,a){return sum(w)>a},w:"k is a size, not a limit on the sum."}]},how(),
+ {q:"Record the answer…",o:[{t:"after shrinking, if size == k",when:"after",c:function(w,a){return w.length==a?sum(w):null}},{t:"after shrinking, always",when:"after",c:function(w){return sum(w)},w:"Partial windows (smaller than k) get counted. Try negative numbers."},{t:"before shrinking, if size == k",when:"before",c:function(w,a){return w.length==a?sum(w):null},w:"Before shrinking the window is usually size k+1, so almost nothing is recorded."}]}],
+ tests:[[[2,1,5,1,3,2],3],[[-1,-2,-3,-4],2],[[4,-1,2,-5,6],3],[[1,1,1],3]],
+ brute:function(t){var b=-1e9;each(t[0]).forEach(function(w){if(w.length==t[1])b=Math.max(b,sum(w))});return b}},
+{n:"Longest Substring Without Repeating Characters",s:"Find the length of the longest substring with no repeated characters.",best:"max",
+ roles:[{q:"Shrink when…",o:[{t:"a letter appears twice in the window",f:function(w){return new Set(w).size<w.length}},{t:"window length > 3",f:function(w){return w.length>3},w:"3 is just the sample answer, not a rule."},{t:"window has more than 2 different letters",f:function(w){return new Set(w).size>2},w:"That is the “at most k distinct” problem, not this one."}]},how(),
+ {q:"Record the answer…",o:[{t:"after shrinking, the window length",when:"after",c:function(w){return w.length}},{t:"before shrinking, the window length",when:"before",c:function(w){return w.length},w:"At that moment the window may still hold a repeat, so the length is too big."}]}],
+ tests:[["abcabcbb"],["bbbbb"],["pwwkew"],["abba"],["tmmzuxt"]],
+ brute:function(t){var b=0;each(t[0].split("")).forEach(function(w){if(new Set(w).size==w.length)b=Math.max(b,w.length)});return b}},
+{n:"Longest Repeating Character Replacement",s:"Find the longest substring you can make one repeated letter by replacing at most k characters.",best:"max",
+ roles:[{q:"Shrink when…",o:[{t:"size − most common letter count > k",f:function(w,a){return w.length-mx(w)>a}},{t:"more than k different letters",f:function(w,a){return new Set(w).size>a},w:"Letters you keep don’t count as replacements; the cost is size minus the biggest group."},{t:"most common letter count > k",f:function(w,a){return mx(w)>a},w:"That punishes the letter you want to keep."}]},how(),
+ {q:"Record the answer…",o:[{t:"after shrinking, the window length",when:"after",c:function(w){return w.length}},{t:"before shrinking, the window length",when:"before",c:function(w){return w.length},w:"The window may be invalid when you record it."},{t:"after shrinking, the most common letter count",when:"after",c:function(w){return mx(w)},w:"The answer is a length, not a letter count."}]}],
+ tests:[["AABABBA",1],["ABAB",2],["AAAA",2],["ABCDE",1]],
+ brute:function(t){var b=0;each(t[0].split("")).forEach(function(w){if(w.length-mx(w)<=t[1])b=Math.max(b,w.length)});return b}},
+{n:"Minimum Window Substring (length only)",s:"Find the length of the smallest substring of s that contains every character of t (with repeats). Return 0 if none.",best:"min",
+ roles:[{q:"Shrink when…",o:[{t:"the window still contains every character of t",f:function(w,a){return cont(w,a)}},{t:"the window has no character of t",f:function(w,a){return !w.some(function(x){return a.indexOf(x)>=0})},w:"That drops useless letters but never tightens a valid window."},{t:"window longer than t",f:function(w,a){return w.length>a.length},w:"Length alone says nothing about whether it contains t."}]},how(),
+ {q:"Record the answer…",o:[{t:"during shrinking, the length while still valid",when:"during",c:function(w,a){return cont(w,a)?w.length:null}},{t:"after shrinking, the window length",when:"after",c:function(w){return w.length},w:"After shrinking the window has just become invalid."},{t:"before shrinking, the length if valid",when:"before",c:function(w,a){return cont(w,a)?w.length:null},w:"Valid, but not yet the smallest. You must record while shrinking."}]}],
+ tests:[["ADOBECODEBANC","ABC"],["a","a"],["a","aa"],["ABAC","AB"],["AABC","ABC"]],
+ brute:function(t){var b=0,a=t[1];each(t[0].split("")).forEach(function(w){if(cont(w,a)&&(!b||w.length<b))b=w.length});return b}}
+]};
+function runSp(sp,pk,inp){
+  var arr=typeof inp[0]=="string"?inp[0].split(""):inp[0],a=inp[1],left=0,best=null,tr=[];
+  var sh=sp.roles[0].o[pk[0]],hw=sp.roles[1].o[pk[1]],rc=sp.roles[2].o[pk[2]];
+  function upd(w){var v=rc.c(w,a);if(v!=null&&(best==null||(sp.best=="max"?v>best:v<best)))best=v}
+  for(var r=0;r<arr.length;r++){
+    if(rc.when=="before")upd(arr.slice(left,r+1));
+    var g=0;
+    while(left<=r&&g++<999&&sh.f(arr.slice(left,r+1),a)){if(rc.when=="during")upd(arr.slice(left,r+1));left++;if(hw.m=="if")break}
+    if(rc.when=="after")upd(arr.slice(left,r+1));
+    tr.push("right="+r+"  "+arr.map(function(x,i){return (i==left?"[":"")+x+(i==r?"]":"")}).join(" ")+"   best="+(best==null?"none":best));
+  }
+  return {got:best==null?0:best,tr:tr};
+}
+function fmt(t){return (typeof t[0]=="string"?'"'+t[0]+'"':'['+t[0]+']')+(t[1]!==undefined?', '+(typeof t[1]=="string"?'"'+t[1]+'"':t[1]):'')}
+function bld(p,i,lad){
+  var sp=BL[p][i],ro=sp.roles,pk=ro.map(function(){return -1});S.b=S.b||{};
+  function code(){if(sp.code)return sp.code(pk,ro);
+    function T(k){return pk[k]<0?"___":ro[k].o[pk[k]].t}
+    var rc=pk[2]<0?{when:"after"}:ro[2].o[pk[2]],R2="    record: "+T(2)+";\n",hw=pk[1]<0?"while":ro[1].o[pk[1]].m;
+    return "for (int right = 0; right < n; right++) {\n    add(s[right]);\n"+(rc.when=="before"?R2:"")+"    "+hw+" ("+T(0)+") {\n"+(rc.when=="during"?"    "+R2:"")+"        remove(s[left]); left++;\n    }\n"+(rc.when=="after"?R2:"")+"}";
+  }
+  function draw(res){
+    var h='<div class="top"><span>Build · '+L[p].t+' · '+(i+1)+' of '+BL[p].length+'</span><button class="btn alt" id="bk" style="font-size:14px;padding:4px 12px">Lesson</button></div><div class="q"><small>'+sp.n+'</small>'+sp.s+'</div><p class="mut">The loop skeleton is fixed. Choose one block for each role, then run the tests.</p>';
+    ro.forEach(function(r,ri){h+='<p style="margin:12px 0 6px"><b>'+r.q+'</b></p><div class="opts">';r.o.forEach(function(o,oi){h+='<button class="opt'+(pk[ri]==oi?' sel':'')+'" data-r="'+ri+'" data-o="'+oi+'">'+o.t+'</button>'});h+='</div>'});
+    h+='<pre>'+esc(code())+'</pre><button class="btn" id="rn"'+(pk.indexOf(-1)>=0?' disabled':'')+'>Run tests</button><div id="res" style="margin-top:14px">'+(res||'')+'</div>';
+    app.innerHTML=h;on("bk",function(){lesson(p)});
+    Array.prototype.forEach.call(app.querySelectorAll(".opt"),function(b){b.onclick=function(){pk[+b.dataset.r]=+b.dataset.o;draw()}});
+    on("rn",run);
+  }
+  function run(){
+    var rows="",bad=null,ok=true;
+    sp.tests.forEach(function(t){var e=sp.brute(t),r=(sp.run||runSp)(sp,pk,t),y=r.got===e;if(!y&&ok){ok=false;bad=r}if(!bad&&!y)bad=r;
+      rows+='<tr><td>'+esc(fmt(t))+'</td><td>'+e+'</td><td>'+r.got+'</td><td>'+(y?'✓':'✗')+'</td></tr>'});
+    var tr=(bad||(sp.run||runSp)(sp,pk,sp.tests[0])).tr,flagged=ro.map(function(r,k){return r.o[pk[k]].w}).filter(Boolean);
+    var msg=ok?'<b>All tests pass.</b> '+(flagged.length?'Your choice is not the textbook one, but it behaves correctly on these inputs, so it counts. Check why it works.':'Your logic matches the template.'):'<b>Not yet.</b> '+(flagged.length?'Look at your blocks: '+flagged.join(' '):'The blocks look right, so recheck the other roles.');
+    if(ok&&!S.b[p+i]){S.b[p+i]=1;S.xp+=25;save();msg+=' +25 XP.'}
+    var h='<div class="rev'+(ok?'':' bad')+'">'+msg+'</div><table style="width:100%;border-collapse:collapse;margin-bottom:10px"><tr style="text-align:left"><th>Input</th><th>Expected</th><th>Got</th><th></th></tr>'+rows+'</table>'+
+    '<p class="mut" style="margin:0 0 4px">'+(ok?'Trace of the first input':'Trace of the first failing input')+' ('+(sp.tn||'the window is in brackets')+'):</p><pre>'+esc(tr.length?tr.join("\n"):"(no steps)")+'</pre>';
+    if(ok)h+=(i+1<BL[p].length?'<button class="btn" id="nb">Next problem</button>':'<button class="btn" id="nb">Continue</button>');
+    draw(h);if(ok)on("nb",function(){i+1<BL[p].length?bld(p,i+1,lad):(lad?fin(p):mapv())});
+    var rs=document.getElementById("res");if(rs)rs.scrollIntoView({block:"nearest"});
+  }
+  draw();
+}
+var G=[
+[1,"Arrays & Hashing","hash",["Group Anagrams","Encode and Decode Strings","Product of Array Except Self","Longest Consecutive Sequence","Two Sum","Contains Duplicate","Valid Anagram"]],
+[2,"Two Pointers","two",["3Sum","Container With Most Water","Valid Palindrome"]],
+[3,"Sliding Window","win",["Longest Substring Without Repeating Characters","Longest Repeating Character Replacement","Minimum Window Substring","Best Time to Buy and Sell Stock"]],
+[4,"Stack","stk",["Valid Parentheses"]],
+[5,"Binary Search","bs",["Search in Rotated Sorted Array","Find Minimum in Rotated Sorted Array"]],
+[6,"Linked Lists","ll",["Reorder List","Remove Nth Node From End of List","Merge k Sorted Lists","Reverse Linked List","Merge Two Sorted Lists","Linked List Cycle"]],
+[7,"Trees","tree",["Lowest Common Ancestor of a Binary Search Tree","Binary Tree Level Order Traversal","Validate Binary Search Tree","Kth Smallest Element in a BST","Construct Binary Tree from Preorder and Inorder Traversal","Binary Tree Maximum Path Sum","Serialize and Deserialize Binary Tree","Invert Binary Tree","Maximum Depth of Binary Tree","Same Tree","Subtree of Another Tree"]],
+[8,"Tries","trie",["Implement Trie (Prefix Tree)","Design Add and Search Words Data Structure","Word Search II"]],
+[9,"Heap / Priority Queue","heap",["Top K Frequent Elements","Find Median from Data Stream"]],
+[10,"Graphs","graph",["Number of Islands","Clone Graph","Pacific Atlantic Water Flow","Course Schedule","Graph Valid Tree","Number of Connected Components in an Undirected Graph","Alien Dictionary"]],
+[11,"Dynamic Programming","dp",["House Robber","House Robber II","Longest Palindromic Substring","Palindromic Substrings","Decode Ways","Coin Change","Maximum Product Subarray","Word Break","Longest Increasing Subsequence","Longest Common Subsequence","Unique Paths","Combination Sum IV","Climbing Stairs"]],
+[12,"Greedy","gr",["Maximum Subarray","Jump Game"]],
+[13,"Intervals","gr",["Insert Interval","Merge Intervals","Non-overlapping Intervals","Meeting Rooms II","Meeting Rooms"]],
+[14,"Matrix","mat",["Set Matrix Zeroes","Spiral Matrix","Rotate Image","Word Search"]],
+[15,"Bit Manipulation","bit",["Sum of Two Integers","Number of 1 Bits","Counting Bits","Reverse Bits","Missing Number"]]
+];
+function dOf(n){for(var i=0;i<D.length;i++)if(D[i][0]==n)return D[i]}
+function prac(n){return !!(S.pr&&S.pr[n])}
+function road(){
+  clearInterval(tm);R=null;
+  var h='<div class="top"><h2>All problems</h2><button class="btn alt" id="bk" style="font-size:15px;padding:6px 14px">Back</button></div><p class="mut">All 49 medium problems, grouped by pattern. A problem gets a tick once you answer it correctly.</p><div class="map">';
+  G.forEach(function(g,i){var d=g[3].filter(prac).length;
+    h+='<button class="node" data-i="'+i+'" style="text-align:left;font:inherit;color:inherit;cursor:pointer"><b>'+g[0]+'. '+g[1]+'</b><div class="m"><i style="width:'+d/g[3].length*100+'%;background:var(--acc)"></i></div><span>'+d+'/'+g[3].length+' quizzed</span></button>'});
+  app.innerHTML=h+'</div>';on("bk",home);
+  Array.prototype.forEach.call(app.querySelectorAll(".node"),function(b){b.onclick=function(){grp(+b.dataset.i)}});
+}
+function grp(i){
+  var g=G[i],h='<div class="top"><h2>'+g[0]+'. '+g[1]+'</h2><button class="btn alt" id="bk" style="font-size:15px;padding:6px 14px">All problems</button></div><div class="opts" style="margin-bottom:14px">';
+  g[3].forEach(function(n,j){h+='<button class="opt" data-j="'+j+'"><span style="flex:1">'+(prac(n)?'✓ ':'')+n+'</span><span class="tag">'+P[dOf(n)[1]]+'</span></button>'});
+  h+='</div><div class="row"><button class="btn" id="qz">Quiz group</button>'+(g[2]&&L[g[2]]?'<button class="btn alt" id="ls">Open lesson</button>':'')+'</div>';
+  app.innerHTML=h;on("bk",road);on("qz",function(){start(null,g[3])});if(g[2]&&L[g[2]])on("ls",function(){lesson(g[2])});
+  Array.prototype.forEach.call(app.querySelectorAll(".opt"),function(b){b.onclick=function(){prob(i,+b.dataset.j)}});
+}
+function prob(i,j){
+  var g=G[i],n=g[3][j],d=dOf(n),st=d[2];
+  d[3].split("|").forEach(function(s){st=st.replace(s,"<mark>"+s+"</mark>")});
+  app.innerHTML='<div class="top"><span>'+g[1]+' · '+(j+1)+' of '+g[3].length+'</span><button class="btn alt" id="bk" style="font-size:15px;padding:6px 14px">Back</button></div>'+
+  '<div class="q"><small>'+n+' · '+P[d[1]]+(prac(n)?' · quizzed ✓':'')+'</small>'+st+'</div>'+
+  '<p><b>Template:</b> '+d[4]+'</p>'+(d[5]?'<div class="rev"><b>Trap.</b> '+d[6]+'</div>':'')+
+  '<div class="row"><button class="btn" id="qz">Quiz group</button><a class="btn alt" style="text-decoration:none" target="_blank" rel="noopener" href="https://leetcode.com/problemset/?search='+encodeURIComponent(n)+'">Solve on LeetCode</a></div>';
+  on("bk",function(){grp(i)});on("qz",function(){start(null,g[3])});
+}
+// Two-pointer builder: same judge, new roles and engines.
+function tl(a,l,r,x){return "l="+l+" r="+r+"  "+a.map(function(v,i){return (i==l?"▶":"")+v+(i==r?"◀":"")}).join(" ")+(x?"   "+x:"")}
+function Tt(pk,ro,k){return pk[k]<0?"___":ro[k].o[pk[k]].t}
+function runPal(sp,pk,inp){
+  var s=inp[0].split(""),l=0,r=s.length-1,tr=[],g=0,al=function(c){return /[a-z0-9]/i.test(c)};
+  while(l<r&&g++<200){
+    if(pk[0]==0){while(l<r&&!al(s[l]))l++;while(l<r&&!al(s[r]))r--}else if(pk[0]==2){while(l<r&&!al(s[l]))l++}
+    if(l>=r)break;
+    var eq=s[l].toLowerCase()==s[r].toLowerCase();tr.push(tl(s,l,r,eq?"match":"mismatch"));
+    if(eq){if(pk[2]==0){l++;r--}else if(pk[2]==1)l++}
+    else{if(pk[1]==0)return{got:false,tr:tr};if(pk[1]==1)l++;else r--}
+  }
+  return {got:g>=200?"timeout":true,tr:tr};
+}
+function runTS(sp,pk,inp){
+  var a=inp[0],t=inp[1],l=0,r=a.length-1,tr=[],g=0;
+  while(l<r&&g++<200){
+    var s=a[l]+a[r],k=s<t?pk[0]:s>t?pk[1]:pk[2];tr.push(tl(a,l,r,"sum="+s));
+    if(s==t){if(k==0)return{got:(l+1)+","+(r+1),tr:tr};if(k==1)l++;else return{got:"none",tr:tr}}
+    else if(s<t){if(k==0)l++;else if(k==1)r--;else{l++;r--}}
+    else{if(k==0)r--;else if(k==1)l++;else{l++;r--}}
+  }
+  return {got:"none",tr:tr};
+}
+function runCW(sp,pk,inp){
+  var a=inp[0],l=0,r=a.length-1,best=0,tr=[],g=0;
+  while((pk[2]==0?l<r:l<=r)&&g++<200){
+    var w=r-l,area=pk[1]==0?w*Math.min(a[l],a[r]):pk[1]==1?w*Math.max(a[l],a[r]):w*(a[l]+a[r]);
+    best=Math.max(best,area);tr.push(tl(a,l,r,"area="+area+" best="+best));
+    if(pk[0]==0){if(a[l]<=a[r])l++;else r--}else if(pk[0]==1){if(a[l]<=a[r])r--;else l++}else if(pk[0]==2)l++;else{if(g%2)l++;else r--}
+  }
+  return {got:best,tr:tr};
+}
+function run3(sp,pk,inp){
+  var a=inp[0].slice(),tr=[],g=0,c=0,d=2-pk[1];
+  if(pk[0]==0)a.sort(function(x,y){return x-y});else if(pk[0]==2)a.sort(function(x,y){return y-x});
+  for(var i=0;i<a.length-2;i++){
+    if(d>=1&&i>0&&a[i]==a[i-1])continue;
+    var l=i+1,r=a.length-1;
+    while(l<r&&g++<500){
+      var s=a[i]+a[l]+a[r];tr.push("i="+i+"  "+tl(a,l,r,"sum="+s));
+      if(s<0)l++;else if(s>0)r--;
+      else{c++;if(pk[2]==2)break;if(pk[2]==0){l++;r--}else l++;if(d==2){while(l<r&&a[l]==a[l-1])l++;while(l<r&&a[r]==a[r+1])r--}}
+    }
+  }
+  return {got:c,tr:tr};
+}
+BL.two=[
+{n:"Valid Palindrome",s:"Check if a string reads the same forwards and backwards, ignoring case and non-alphanumeric characters.",
+ roles:[{q:"Before comparing, you…",o:[{t:"skip non-alphanumeric characters on both sides"},{t:"don’t skip anything",w:"Punctuation and spaces would be compared as characters."},{t:"skip them on the left side only",w:"The right pointer can also land on punctuation."}]},
+ {q:"When the two characters differ…",o:[{t:"return false"},{t:"l++ and keep going",w:"One mismatch already proves it is not a palindrome."},{t:"r-- and keep going",w:"One mismatch already proves it is not a palindrome."}]},
+ {q:"When they match…",o:[{t:"l++ and r--"},{t:"l++ only",w:"The right pointer never moves, so the same character is compared again."},{t:"move nothing",w:"With no movement the loop never ends."}]}],
+ tests:[["A man, a plan, a canal: Panama"],["race a car"],[" "],["0P"],["a."],["ab"]],
+ brute:function(t){var c=t[0].toLowerCase().replace(/[^a-z0-9]/g,"");return c==c.split("").reverse().join("")},run:runPal,
+ code:function(pk,ro){return "int l = 0, r = n - 1;\nwhile (l < r) {\n    // skip: "+Tt(pk,ro,0)+"\n    if (lower(s[l]) != lower(s[r])) { "+Tt(pk,ro,1)+" }\n    else { "+Tt(pk,ro,2)+" }\n}\nreturn true;"}},
+{n:"Two Sum II (sorted input)",s:"In a sorted array, find the 1-indexed positions of two numbers that add up to a target.",
+ roles:[{q:"The sum is too small, so…",o:[{t:"l++"},{t:"r--",w:"Moving the right pointer left makes the sum even smaller."},{t:"l++ and r--",w:"Moving both skips pairs that could be the answer."}]},
+ {q:"The sum is too big, so…",o:[{t:"r--"},{t:"l++",w:"Moving the left pointer right makes the sum even bigger."},{t:"l++ and r--",w:"Moving both skips pairs that could be the answer."}]},
+ {q:"The sum equals the target, so…",o:[{t:"return l + 1, r + 1"},{t:"l++ and keep searching",w:"You just walked past the answer."},{t:"stop and return none",w:"You found it; return it."}]}],
+ tests:[[[2,7,11,15],9],[[2,3,4],6],[[-1,0],-1],[[1,2,3,4,4,9,56,90],8]],
+ brute:function(t){var a=t[0];for(var i=0;i<a.length;i++)for(var j=i+1;j<a.length;j++)if(a[i]+a[j]==t[1])return (i+1)+","+(j+1);return "none"},run:runTS,
+ code:function(pk,ro){return "int l = 0, r = n - 1;\nwhile (l < r) {\n    int sum = a[l] + a[r];\n    if (sum < target) { "+Tt(pk,ro,0)+" }\n    else if (sum > target) { "+Tt(pk,ro,1)+" }\n    else { "+Tt(pk,ro,2)+" }\n}"}},
+{n:"Container With Most Water",s:"Given vertical lines at each index, find the largest area two of them can hold.",
+ roles:[{q:"Which pointer moves each step?",o:[{t:"the one at the shorter line"},{t:"the one at the taller line",w:"The shorter line limits the area; moving the taller one can only lose width."},{t:"always l++",w:"The right pointer never moves, so many pairs are never tried."},{t:"alternate l++ and r--",w:"The choice must depend on the line heights, not the step number."}]},
+ {q:"Area of the current pair…",o:[{t:"(r - l) * min(h[l], h[r])"},{t:"(r - l) * max(h[l], h[r])",w:"Water is limited by the shorter line."},{t:"(r - l) * (h[l] + h[r])",w:"Heights add nothing; the shorter side is the limit."}]},
+ {q:"Keep looping while…",o:[{t:"l < r"},{t:"l <= r",w:"At l == r the width is 0, so the extra step does nothing."}]}],
+ tests:[[[1,8,6,2,5,4,8,3,7]],[[1,1]],[[4,3,2,1,4]],[[1,2,1]],[[1,1,1,1,9,9,1]]],
+ brute:function(t){var a=t[0],b=0;for(var i=0;i<a.length;i++)for(var j=i+1;j<a.length;j++)b=Math.max(b,(j-i)*Math.min(a[i],a[j]));return b},run:runCW,
+ code:function(pk,ro){return "int l = 0, r = n - 1, best = 0;\nwhile ("+Tt(pk,ro,2)+") {\n    best = max(best, "+Tt(pk,ro,1)+");\n    // move: "+Tt(pk,ro,0)+"\n}"}},
+{n:"3Sum (count of unique triplets)",s:"Count the unique triplets in an array that sum to zero.",
+ roles:[{q:"Preparation",o:[{t:"sort ascending"},{t:"leave the array as it is",w:"Pointer moves only make sense on sorted data."},{t:"sort descending",w:"The sum rules (too small, move l) assume ascending order."}]},
+ {q:"Handling duplicates",o:[{t:"skip equal values for i and after each triplet"},{t:"skip equal values for i only",w:"The same triplet can be found again with equal l or r values."},{t:"never skip",w:"Duplicate triplets get counted more than once."}]},
+ {q:"When a triplet sums to 0…",o:[{t:"l++ and r--"},{t:"l++ only",w:"It still works, but r must move later; you gain nothing."},{t:"stop this i (break)",w:"One i can belong to several triplets."}]}],
+ tests:[[[-1,0,1,2,-1,-4]],[[0,0,0,0]],[[-2,0,0,2,2]],[[1,2,-2,-1]],[[-4,-2,-2,-2,0,1,2,2,2,3,3,4,4,6,6]]],
+ brute:function(t){var a=t[0],s={};for(var i=0;i<a.length;i++)for(var j=i+1;j<a.length;j++)for(var k=j+1;k<a.length;k++)if(a[i]+a[j]+a[k]==0)s[[a[i],a[j],a[k]].sort(function(x,y){return x-y}).join()]=1;return Object.keys(s).length},run:run3,
+ code:function(pk,ro){return "// prep: "+Tt(pk,ro,0)+"\nfor (int i = 0; i + 2 < n; i++) {\n    // duplicates: "+Tt(pk,ro,1)+"\n    int l = i + 1, r = n - 1;\n    while (l < r) {\n        int sum = a[i] + a[l] + a[r];\n        if (sum < 0) l++; else if (sum > 0) r--;\n        else { count++; "+Tt(pk,ro,2)+" }\n    }\n}"}}
+];
+// DP block builder: state, recurrence, base case and return, with brute-force judging.
+BL.dp=[
+{n:"Climbing Stairs",s:"Count the distinct ways to reach step n taking 1 or 2 steps at a time.",tn:"ways to reach each step",
+ roles:[{q:"Base case (dp[0], dp[1])",o:[{t:"dp[0] = 1, dp[1] = 1"},{t:"dp[0] = 0, dp[1] = 1",w:"There is exactly one way to stand on step 0 (do nothing)."},{t:"dp[0] = 1, dp[1] = 2",w:"Step 1 can only be reached one way: a single 1-step."}]},
+ {q:"Recurrence for dp[i]",o:[{t:"dp[i-1] + dp[i-2]"},{t:"dp[i-1] + 1",w:"That counts one extra path instead of all paths through the two previous steps."},{t:"dp[i-1] * dp[i-2]",w:"The last move is a 1-step or a 2-step, so you add the cases, not multiply."}]}],
+ tests:[[0],[1],[2],[3],[5],[10]],
+ brute:function(t){var n=t[0],a=1,b=1;for(var i=2;i<=n;i++){var c=a+b;a=b;b=c}return b},
+ run:function(sp,pk,inp){var n=inp[0],dp=[],tr=[],base=[[1,1],[0,1],[1,2]][pk[0]],rec=[function(a,b){return a+b},function(a){return a+1},function(a,b){return a*b}][pk[1]];
+  dp[0]=base[0];if(n>=1)dp[1]=base[1];for(var i=2;i<=n;i++)dp[i]=rec(dp[i-1],dp[i-2]);
+  for(i=0;i<=n&&i<8;i++)tr.push("dp["+i+"] = "+dp[i]);return {got:dp[n],tr:tr}},
+ code:function(pk,ro){return "dp[0] = "+(pk[0]<0?"___":"base case: "+ro[0].o[pk[0]].t)+"\nfor (int i = 2; i <= n; i++)\n    dp[i] = "+(pk[1]<0?"___":ro[1].o[pk[1]].t)+";\nreturn dp[n];"}},
+{n:"House Robber",s:"Maximize money from houses in a row without robbing two adjacent houses.",tn:"best money up to each house",
+ roles:[{q:"Base case (first two houses)",o:[{t:"dp[0] = nums[0], dp[1] = max(nums[0], nums[1])"},{t:"dp[0] = nums[0], dp[1] = nums[1]",w:"Taking the larger of the first two houses, not blindly the second, is the base."}]},
+ {q:"Recurrence for dp[i]",o:[{t:"max(dp[i-1], dp[i-2] + nums[i])"},{t:"dp[i-1] + nums[i]",w:"That robs house i-1 and house i, which are adjacent."},{t:"max(dp[i-1], dp[i-2]) + nums[i]",w:"dp[i-1] may already include house i-1, so this can rob two neighbours."}]}],
+ tests:[[[]],[[2]],[[2,7]],[[7,2]],[[1,2,3,1]],[[2,7,9,3,1]],[[5,1,1,5]]],
+ brute:function(t){var a=0,b=0;t[0].forEach(function(x){var c=Math.max(b,a+x);a=b;b=c});return b},
+ run:function(sp,pk,inp){var nums=inp[0],n=nums.length,dp=[],tr=[];
+  if(!n)return {got:0,tr:["no houses, so 0"]};
+  dp[0]=nums[0];if(n>1)dp[1]=[Math.max(nums[0],nums[1]),nums[1]][pk[0]];
+  var rec=[function(a,b,x){return Math.max(a,b+x)},function(a,b,x){return a+x},function(a,b,x){return Math.max(a,b)+x}][pk[1]];
+  for(var i=2;i<n;i++)dp[i]=rec(dp[i-1],dp[i-2],nums[i]);
+  for(i=0;i<n&&i<8;i++)tr.push("house "+i+" ($"+nums[i]+") -> best "+dp[i]);return {got:dp[n-1],tr:tr}},
+ code:function(pk,ro){return "dp[0] = nums[0]; dp[1] = "+(pk[0]<0?"___":ro[0].o[pk[0]].t.replace(/^dp\[0\].*dp\[1\] = /,""))+"\nfor (int i = 2; i < n; i++)\n    dp[i] = "+(pk[1]<0?"___":ro[1].o[pk[1]].t)+";\nreturn dp[n-1];"}},
+{n:"Coin Change",s:"Find the fewest coins needed to make an amount, or -1 if impossible.",tn:"fewest coins for each amount",
+ roles:[{q:"Initialise the table",o:[{t:"dp[0] = 0, every other entry = INF"},{t:"every entry = INF, including dp[0]",w:"Zero coins make amount 0, so dp[0] must be 0 or nothing can ever be built on it."},{t:"dp[0] = 1, every other entry = INF",w:"Zero coins make amount 0, so dp[0] must be 0. With 1, every answer comes out one too high."}]},
+ {q:"Transition for amount a",o:[{t:"min over all coins c ≤ a of dp[a - c] + 1"},{t:"dp[a - coins[0]] + 1 (first coin only)",w:"You must try every coin; the first coin alone misses better combinations."},{t:"max over all coins c ≤ a of dp[a - c] + 1",w:"You want the fewest coins, so take the minimum, not the maximum."}]},
+ {q:"Return",o:[{t:"dp[amount], or -1 if it is INF"},{t:"dp[amount] as is",w:"Impossible amounts must return -1, not INF."}]}],
+ tests:[[[1,2,5],11],[[2],3],[[1],0],[[1,3,4],6],[[2,5,10,1],27],[[3,7],5]],
+ brute:function(t){var c=t[0],A=t[1],memo={};function f(a){if(a==0)return 0;if(a in memo)return memo[a];var b=Infinity;c.forEach(function(x){if(x<=a){var v=f(a-x)+1;if(v<b)b=v}});memo[a]=b;return b}var r=f(A);return r===Infinity?-1:r},
+ run:function(sp,pk,inp){var c=inp[0],A=inp[1],dp=[],tr=[],INF=Infinity,a;
+  for(a=0;a<=A;a++)dp[a]=pk[0]==0?(a==0?0:INF):pk[0]==1?INF:(a==0?1:INF);
+  for(a=1;a<=A;a++){var used=c.filter(function(x){return x<=a});if(pk[1]==1)used=c[0]<=a?[c[0]]:[];
+    var best=pk[1]==2?-INF:INF;used.forEach(function(x){var v=dp[a-x]+1;best=pk[1]==2?Math.max(best,v):Math.min(best,v)});dp[a]=best}
+  for(a=0;a<=A&&a<=10;a++)tr.push("amount "+a+" -> "+(dp[a]===INF?"INF":dp[a]));
+  return {got:pk[2]==0?(dp[A]===INF?-1:dp[A]):dp[A],tr:tr}},
+ code:function(pk,ro){return "dp[0] = 0; others = INF  ("+(pk[0]<0?"___":ro[0].o[pk[0]].t)+")\nfor (int a = 1; a <= amount; a++)\n    dp[a] = "+(pk[1]<0?"___":ro[1].o[pk[1]].t)+";\nreturn "+(pk[2]<0?"___":ro[2].o[pk[2]].t)+";"}},
+{n:"Longest Common Subsequence",s:"Find the length of the longest subsequence common to two strings.",tn:"LCS length of each prefix pair",
+ roles:[{q:"When the two letters match…",o:[{t:"dp[i-1][j-1] + 1"},{t:"max(dp[i-1][j], dp[i][j-1]) + 1",w:"A matching pair should extend the diagonal, not the best neighbour."}]},
+ {q:"When the two letters differ…",o:[{t:"max(dp[i-1][j], dp[i][j-1])"},{t:"dp[i-1][j-1]",w:"Dropping a letter from either string can give a longer answer than the diagonal."},{t:"min(dp[i-1][j], dp[i][j-1])",w:"You want the longest, so take the maximum."}]}],
+ tests:[["abcde","ace"],["abc","abc"],["abc","def"],["ab","bb"],["",""],["ezupkr","ubmrapg"]],
+ brute:function(t){var A=t[0],B=t[1],memo={};function f(i,j){if(i==A.length||j==B.length)return 0;var k=i+","+j;if(k in memo)return memo[k];var r=A[i]==B[j]?1+f(i+1,j+1):Math.max(f(i+1,j),f(i,j+1));memo[k]=r;return r}return f(0,0)},
+ run:function(sp,pk,inp){var A=inp[0],B=inp[1],n=A.length,m=B.length,dp=[],tr=[],i,j;
+  for(i=0;i<=n;i++){dp[i]=[];for(j=0;j<=m;j++)dp[i][j]=0}
+  for(i=1;i<=n;i++)for(j=1;j<=m;j++){
+    if(A[i-1]==B[j-1])dp[i][j]=pk[0]==0?dp[i-1][j-1]+1:Math.max(dp[i-1][j],dp[i][j-1])+1;
+    else dp[i][j]=pk[1]==0?Math.max(dp[i-1][j],dp[i][j-1]):pk[1]==1?dp[i-1][j-1]:Math.min(dp[i-1][j],dp[i][j-1]);}
+  for(i=0;i<=n&&i<6;i++)tr.push("row "+i+": "+dp[i].join(" "));
+  return {got:dp[n][m],tr:tr}},
+ code:function(pk,ro){return "if (a[i-1] == b[j-1])\n    dp[i][j] = "+(pk[0]<0?"___":ro[0].o[pk[0]].t)+";\nelse\n    dp[i][j] = "+(pk[1]<0?"___":ro[1].o[pk[1]].t)+";\nreturn dp[n][m];"}}
+];
+// Keep only the 49 medium problems from the course list.
+var ALLOW={},BASE=function(n){return n.replace(/\s*\(.*\)$/,'')};
+G.forEach(function(g){g[3].forEach(function(n){ALLOW[n]=1})});
+D=D.filter(function(d){return ALLOW[d[0]]});
+Q=Q.filter(function(q){return ALLOW[q[0]]});
+Object.keys(L).forEach(function(k){L[k].steps=L[k].steps.filter(function(st){return ALLOW[st.n]||ALLOW[BASE(st.n)]})});
+Object.keys(BL).forEach(function(k){BL[k]=BL[k].filter(function(sp){return ALLOW[sp.n]||ALLOW[BASE(sp.n)]})});
+// Builders: Binary Search, Hash Map, Trees. Same judge as before: textbook choices pass, common mistakes fail.
+function mkT(arr){if(!arr.length||arr[0]==null)return null;var root={v:arr[0],l:null,r:null},q=[root],i=1;
+  while(q.length&&i<arr.length){var n=q.shift();if(i<arr.length&&arr[i]!=null){n.l={v:arr[i],l:null,r:null};q.push(n.l)}i++;
+    if(i<arr.length&&arr[i]!=null){n.r={v:arr[i],l:null,r:null};q.push(n.r)}i++}
+  return root}
+function runMinRot(sp,pk,inp){var a=inp[0],lo=0,hi=a.length-1,g=0,tr=[];
+  while((pk[3]==0?lo<hi:lo<=hi)&&g++<100){var mid=Math.floor((lo+hi)/2),ref=[a[hi],a[lo],a[mid+1]][pk[0]];
+    if(a[mid]>ref){if(pk[1]==0)lo=mid+1;else if(pk[1]==1)hi=mid;else hi=mid-1}
+    else{if(pk[2]==0)hi=mid;else if(pk[2]==1)lo=mid+1;else hi=mid-1}
+    tr.push("lo="+lo+" hi="+hi+"  mid="+mid+" (value "+a[mid]+")")}
+  return {got:g>=100?"timeout":a[lo],tr:tr}}
+function runSearchRot(sp,pk,inp){var a=inp[0],t=inp[1],lo=0,hi=a.length-1,g=0,tr=[];
+  while((pk[3]==0?lo<=hi:lo<hi)&&g++<100){var mid=Math.floor((lo+hi)/2);
+    if(a[mid]==t){tr.push("found at "+mid);return {got:mid,tr:tr}}
+    var ls=pk[0]==0?a[lo]<=a[mid]:pk[0]==1?a[lo]<a[mid]:a[mid]>=t;
+    if(ls){var inL=pk[1]==0?(a[lo]<=t&&t<a[mid]):pk[1]==1?t<a[mid]:t<=a[mid];if(inL)hi=mid-1;else lo=mid+1}
+    else{var inR=pk[2]==0?(a[mid]<t&&t<=a[hi]):pk[2]==1?t>a[mid]:t>=a[hi];if(inR)lo=mid+1;else hi=mid-1}
+    tr.push("lo="+lo+" hi="+hi+"  mid="+mid+" (value "+a[mid]+")")}
+  return {got:g>=100?"timeout":-1,tr:tr}}
+function runTwoSum(sp,pk,inp){var a=inp[0],t=inp[1],m=new Map(),tr=[];
+  for(var i=0;i<a.length;i++){var x=a[i];if(pk[1]==1)m.set(x,i);
+    var need=pk[0]==0?t-x:x;
+    if(m.has(need)&&m.get(need)!==i){var j=m.get(need);tr.push("i="+i+" x="+x+" need="+need+" found at "+j);
+      return {got:Math.min(i,j)+","+Math.max(i,j),tr:tr}}
+    tr.push("i="+i+" x="+x+" need="+need+" not seen yet");
+    if(pk[1]==0)m.set(x,i)}
+  return {got:"none",tr:tr}}
+function runDup(sp,pk,inp){var a=inp[0],seen=new Set(),tr=[];
+  for(var i=0;i<a.length;i++){var x=a[i];if(pk[1]==1)seen.add(x);
+    var hit=pk[0]==0?seen.has(x):seen.has(x-1);
+    tr.push("x="+x+(hit?"  repeat found":""));
+    if(hit)return {got:true,tr:tr};
+    if(pk[1]==0)seen.add(x)}
+  return {got:false,tr:tr}}
+function runDepth(sp,pk,inp){var root=mkT(inp[0]),tr=[];
+  function d(n){if(!n)return pk[0]==0?0:pk[0]==1?1:-1;var a=d(n.l),b=d(n.r);return pk[1]==0?1+Math.max(a,b):pk[1]==1?Math.max(a,b):1+a}
+  var r=d(root);tr.push("depth of tree = "+r);return {got:r,tr:tr}}
+function runValid(sp,pk,inp){var root=mkT(inp[0]),tr=[];
+  function v(n,lo,hi){if(!n)return true;var ok=pk[0]==0?(n.v>lo&&n.v<hi):pk[0]==1?((!n.l||n.v>n.l.v)&&(!n.r||n.v<n.r.v)):n.v>lo;
+    tr.push("node "+n.v+" bounds ("+lo+", "+hi+") "+(ok?"ok":"fails"));
+    if(!ok)return false;
+    if(pk[1]==0)return v(n.l,lo,n.v)&&v(n.r,n.v,hi);
+    if(pk[1]==1)return v(n.l,lo,hi)&&v(n.r,lo,hi);
+    return v(n.l,lo,n.v)&&v(n.r,lo,hi)}
+  var r=v(root,-Infinity,Infinity);return {got:r,tr:tr}}
+BL.bs=[
+{n:"Find Minimum in Rotated Sorted Array",s:"Find the minimum element in a sorted array that was rotated.",tn:"search window and middle",
+ roles:[{q:"Compare the middle value with…",o:[{t:"a[hi]"},{t:"a[lo]",w:"Both ends can be the same region; compare against the end you can trust, a[hi]."},{t:"a[mid + 1]",w:"mid + 1 can be past the end of the window."}]},
+ {q:"If a[mid] is greater than that value, the minimum is…",o:[{t:"to the right: lo = mid + 1"},{t:"at mid or left: hi = mid",w:"That is the case when a[mid] is smaller, not larger."},{t:"left of mid: hi = mid - 1",w:"mid can itself be the minimum, so you must not discard it."}]},
+ {q:"Otherwise (a[mid] is not greater), the minimum is…",o:[{t:"at mid or left: hi = mid"},{t:"to the right: lo = mid + 1",w:"The minimum may be mid itself, so going right can skip it."},{t:"left of mid: hi = mid - 1",w:"mid can be the minimum, so it must stay in the window."}]},
+ {q:"Keep searching while…",o:[{t:"lo < hi"},{t:"lo <= hi",w:"With hi = mid and lo == hi the window never shrinks, so the loop never ends."}]}],
+ tests:[[[3,4,5,1,2]],[[4,5,6,7,0,1,2]],[[11,13,15,17]],[[2,1]],[[1]],[[2,3,4,5,6,7,8,9,1]],[[3,1,2]],[[4,5,1,2,3]]],
+ brute:function(t){return Math.min.apply(null,t[0])},run:runMinRot,
+ code:function(pk,ro){return "lo = 0, hi = n - 1\nwhile ("+(pk[3]<0?"___":ro[3].o[pk[3]].t)+") {\n    mid = (lo + hi) / 2\n    if (a[mid] > "+(pk[0]<0?"___":ro[0].o[pk[0]].t)+") "+(pk[1]<0?"___":ro[1].o[pk[1]].t)+"\n    else "+(pk[2]<0?"___":ro[2].o[pk[2]].t)+"\n}\nreturn a[lo];"}},
+{n:"Search in Rotated Sorted Array",s:"Find a target in a sorted array that was rotated, in O(log n). Return its index or -1.",tn:"search window and middle",
+ roles:[{q:"Which half is sorted? The left half is sorted when…",o:[{t:"a[lo] ≤ a[mid]"},{t:"a[lo] < a[mid]",w:"When lo == mid (one element on the left), this wrongly calls the left half unsorted."},{t:"a[mid] ≥ target",w:"That compares the middle with the target, not with the ends, so it does not tell which half is sorted."}]},
+ {q:"If the left half is sorted and the target is inside its range…",o:[{t:"a[lo] ≤ target < a[mid]"},{t:"target < a[mid]",w:"This ignores the lower bound, so targets smaller than a[lo] are searched on the wrong side."},{t:"target ≤ a[mid]",w:"The middle is already checked, so including it here sends the search the wrong way."}]},
+ {q:"If the right half is sorted and the target is inside its range…",o:[{t:"a[mid] < target ≤ a[hi]"},{t:"target > a[mid]",w:"This ignores the upper bound, so targets bigger than a[hi] are searched on the wrong side."},{t:"target ≥ a[hi]",w:"That is the wrong end of the range."}]},
+ {q:"Keep searching while…",o:[{t:"lo ≤ hi"},{t:"lo < hi",w:"A window with one element is never checked, so a target sitting alone is missed."}]}],
+ tests:[[[4,5,6,7,0,1,2],0],[[4,5,6,7,0,1,2],3],[[1],0],[[1],1],[[3,1],1],[[5,1,3],5],[[1,3],3],[[6,7,1,2,3,4,5],2],[[6,7,1,2,3,4,5],6],[[5,1,3],3],[[2,3,4,5,6,7,8,9,1],8]],
+ brute:function(t){return t[0].indexOf(t[1])},run:runSearchRot,
+ code:function(pk,ro){return "lo = 0, hi = n - 1\nwhile ("+(pk[3]<0?"___":ro[3].o[pk[3]].t)+") {\n    mid = (lo + hi) / 2\n    if (a[mid] == target) return mid;\n    if ("+(pk[0]<0?"___":ro[0].o[pk[0]].t)+") {   // left half sorted\n        if ("+(pk[1]<0?"___":ro[1].o[pk[1]].t)+") hi = mid - 1; else lo = mid + 1;\n    } else {\n        if ("+(pk[2]<0?"___":ro[2].o[pk[2]].t)+") lo = mid + 1; else hi = mid - 1;\n    }\n}\nreturn -1;"}}
+];
+BL.hash=[
+{n:"Two Sum",s:"Return the indices of two numbers that add up to a target.",tn:"what is in the map",
+ roles:[{q:"For each x, look up…",o:[{t:"target − x"},{t:"x itself",w:"You want a partner value, not the same value again."}]},
+ {q:"Add x to the map…",o:[{t:"after the lookup"},{t:"before the lookup",w:"With [3, 3] and target 6, the number finds itself and returns the same index twice."}]}],
+ tests:[[[2,7,11,15],9],[[3,2,4],6],[[3,3],6],[[-1,-2,-3,-4],-6],[[1,5,8,3],11]],
+ brute:function(t){var a=t[0];for(var i=0;i<a.length;i++)for(var j=i+1;j<a.length;j++)if(a[i]+a[j]==t[1])return i+","+j;return "none"},run:runTwoSum,
+ code:function(pk,ro){return "map = {}\nfor i, x in a:\n    need = "+(pk[0]<0?"___":ro[0].o[pk[0]].t)+"\n    if need in map: return [map[need], i]\n    "+(pk[1]<0?"___":"add x to the map, "+ro[1].o[pk[1]].t)+"\n"}},
+{n:"Contains Duplicate",s:"Return true if any value appears at least twice in the array.",tn:"what has been seen",
+ roles:[{q:"For each x, check whether…",o:[{t:"x is already in the set"},{t:"x − 1 is already in the set",w:"That finds consecutive numbers, not repeats; [1, 2, 3, 4] wrongly returns true."}]},
+ {q:"Add x to the set…",o:[{t:"after checking it"},{t:"before checking it",w:"x is always already there, so every element counts as a repeat."}]}],
+ tests:[[[1,2,3,1]],[[1,2,3,4]],[[]],[[1]],[[5,5]],[[1,3,2]]],
+ brute:function(t){return new Set(t[0]).size<t[0].length},run:runDup,
+ code:function(pk,ro){return "seen = set()\nfor x in a:\n    "+(pk[1]==1?"seen.add(x)\n    ":"")+"if "+(pk[0]<0?"___":ro[0].o[pk[0]].t)+": return true\n    "+(pk[1]==0?"seen.add(x)":"")+"\nreturn false"}}
+];
+BL.tree=[
+{n:"Maximum Depth of Binary Tree",s:"Return the number of nodes along the longest root-to-leaf path.",tn:"depth at each node",
+ roles:[{q:"Depth of an empty node is…",o:[{t:"0"},{t:"1",w:"An empty node adds no level, so it must count as 0."},{t:"-1",w:"A negative depth would make every deeper result one too small."}]},
+ {q:"Depth of a node with children is…",o:[{t:"1 + max(depth(left), depth(right))"},{t:"max(depth(left), depth(right))",w:"You forgot to count the node itself."},{t:"1 + depth(left)",w:"Ignores the right subtree, so a deeper right branch is missed."}]}],
+ tests:[[[3,9,20,null,null,15,7]],[[1,null,2]],[[]],[[1,2,3,4,5]],[[0]],[[1,2,null,3]]],
+ brute:function(t){function d(n){return n?1+Math.max(d(n.l),d(n.r)):0}return d(mkT(t[0]))},run:runDepth,
+ code:function(pk,ro){return "int depth(node) {\n    if (node == null) return "+(pk[0]<0?"___":ro[0].o[pk[0]].t)+";\n    return "+(pk[1]<0?"___":ro[1].o[pk[1]].t)+";\n}"}},
+{n:"Validate Binary Search Tree",s:"Check that every node is larger than everything in its left subtree and smaller than everything in its right subtree.",tn:"bounds checked at each node",
+ roles:[{q:"What do you check at each node?",o:[{t:"it lies strictly between low and high"},{t:"it is between its own children only",w:"A value in a far-away branch can break the rule without being a child."},{t:"it is greater than low only",w:"Nothing stops a node from being larger than its ancestors on the right."}]},
+ {q:"How do you recurse?",o:[{t:"left with (low, node), right with (node, high)"},{t:"both children with the same (low, high)",w:"The bounds must tighten as you go down, or a left-subtree value can exceed an ancestor."},{t:"left with (low, node), right with (low, high)",w:"The right subtree is missing its lower bound from this node."}]}],
+ tests:[[[2,1,3]],[[5,1,4,null,null,3,6]],[[]],[[2,2,2]],[[5,4,6,null,null,3,7]],[[10,5,15,null,null,6,20]],[[1,1]]],
+ brute:function(t){var out=[];(function io(n){if(!n)return;io(n.l);out.push(n.v);io(n.r)})(mkT(t[0]));for(var i=1;i<out.length;i++)if(out[i]<=out[i-1])return false;return true},run:runValid,
+ code:function(pk,ro){return "bool check(node, low, high) {\n    if (node == null) return true;\n    if (!("+(pk[0]<0?"___":ro[0].o[pk[0]].t)+")) return false;\n    return check(node->left, ...) && check(node->right, ...);  // "+(pk[1]<0?"___":ro[1].o[pk[1]].t)+"\n}"}}
+];
+// Builders batch 4: Linked Lists, Heap, Graphs, Greedy & Intervals, Matrix, Bit, Tries.
+function lcg(s){return function(){s=(s*1103515245+12345)&0x7fffffff;return s}}
+function genIv(seed,cnt){var r=lcg(seed),out=[];for(var i=0;i<cnt;i++){var a=r()%10,b=a+1+r()%5;out.push([a,b])}return [out]}
+function codeFor(pk,ro){return ro.map(function(r,k){return "// "+r.q+"\n    "+(pk[k]<0?"___":r.o[pk[k]].t)}).join("\n")}
+function brutePairsSorted(p){return p}
+function mkL(arr){var d={v:null,next:null},c=d;arr.forEach(function(v){c.next={v:v,next:null};c=c.next});return d}
+function listOut(d){var o=[],c=d.next,g=0;while(c&&g++<500){o.push(c.v);c=c.next}return JSON.stringify(o)}
+function runRemoveNth(sp,pk,inp){var a=inp[0],n=inp[1],d=mkL(a),tr=[],gap=[n,n-1,n+2][pk[0]],fast=d,k;
+  for(k=0;k<gap;k++){if(!fast)break;fast=fast.next}
+  var slow=d;
+  if(pk[1]==0){while(fast&&fast.next){fast=fast.next;slow=slow.next}}
+  else{while(fast){fast=fast.next;slow=slow.next}}
+  tr.push("slow stops before node with value "+(slow.next?slow.next.v:"none"));
+  if(pk[2]==0&&slow.next)slow.next=slow.next.next;
+  return {got:listOut(d),tr:tr}}
+function runMeet(sp,pk,inp){var iv=inp[0].map(function(x){return x.slice()}),tr=[],heap=[],best=0;
+  iv.sort(pk[0]==0?function(a,b){return a[0]-b[0]}:pk[0]==1?function(a,b){return a[1]-b[1]}:function(a,b){return (a[1]-a[0])-(b[1]-b[0])});
+  var pushes=0,pops=0;
+  iv.forEach(function(x){var s=x[0],e=x[1];
+    if(heap.length){var m=0;for(var j=1;j<heap.length;j++)if(heap[j]<heap[m])m=j;
+      if(pk[2]==0&&heap[m]<=s){heap.splice(m,1);pops++}else if(pk[2]==2){heap.splice(m,1);pops++}}
+    heap.push(pk[1]==0?e:pk[1]==1?s:e-s);pushes++;
+    if(pk[3]==0)best=Math.max(best,heap.length);
+    tr.push("meeting ["+s+","+e+"]  rooms in use "+heap.length)});
+  var got=pk[3]==0?best:pk[3]==1?pops:pushes;
+  return {got:got,tr:tr}}
+function runCourse(sp,pk,inp){var n=inp[0],pre=inp[1],adj=[],indeg=[],i,g=0,tr=[];
+  for(i=0;i<n;i++){adj.push([]);indeg.push(0)}
+  pre.forEach(function(p){adj[p[1]].push(p[0]);indeg[p[0]]++});
+  if(pk[0]==1)for(i=0;i<n;i++)indeg[i]=adj[i].length;
+  var q=[];for(i=0;i<n;i++){if(pk[1]==0?indeg[i]==0:adj[i].length==0)q.push(i)}
+  var taken=0;
+  while(q.length&&g++<1000){var x=q.shift();taken++;tr.push("take course "+x);
+    adj[x].forEach(function(y){if(pk[2]==0){indeg[y]--;if(indeg[y]==0)q.push(y)}else indeg[y]++})}
+  var got=pk[3]==0?taken==n:pk[3]==1?true:taken>0;
+  return {got:got,tr:tr}}
+function runMerge(sp,pk,inp){var iv=inp[0].map(function(x){return x.slice()}),out=[],tr=[];
+  iv.sort(pk[0]==0?function(a,b){return a[0]-b[0]}:pk[0]==1?function(a,b){return a[1]-b[1]}:function(a,b){return (a[1]-a[0])-(b[1]-b[0])});
+  iv.forEach(function(c){
+    if(!out.length){out.push(c.slice());return}
+    var last=out[out.length-1],ov=pk[1]==0?c[0]<=last[1]:c[0]<last[1];
+    if(ov)last[1]=pk[2]==0?Math.max(last[1],c[1]):c[1];else out.push(c.slice());
+    tr.push("["+c[0]+","+c[1]+"] -> "+JSON.stringify(out))});
+  return {got:JSON.stringify(out),tr:tr}}
+function runRotate(sp,pk,inp){var m=inp[0].map(function(r){return r.slice()}),n=m.length,tr=[],i,j,t;
+  if(pk[0]==0){for(i=0;i<n;i++)for(j=i+1;j<n;j++){t=m[i][j];m[i][j]=m[j][i];m[j][i]=t}}
+  else if(pk[0]==1){for(i=0;i<n;i++)for(j=0;j<n;j++){t=m[i][j];m[i][j]=m[j][i];m[j][i]=t}}
+  else{m.forEach(function(r){r.reverse()})}
+  tr.push("after step 1: "+JSON.stringify(m));
+  if(pk[1]==0)m.forEach(function(r){r.reverse()});
+  else if(pk[1]==1){for(j=0;j<n;j++){var col=m.map(function(r){return r[j]}).reverse();for(i=0;i<n;i++)m[i][j]=col[i]}}
+  tr.push("after step 2: "+JSON.stringify(m));
+  return {got:JSON.stringify(m),tr:tr}}
+function runSum(sp,pk,inp){var a=inp[0],b=inp[1],g=0,tr=[],s,c;
+  do{s=pk[0]==0?(a^b):(a&b);c=pk[1]==0?((a&b)<<1):((a|b)<<1);a=s|0;b=c|0;tr.push("sum "+a+"  carry "+b)}
+  while((pk[2]==0?b!==0:a!==b)&&g++<40);
+  return {got:a,tr:tr}}
+function runTrie(sp,pk,inp){var words=inp[0],q=inp[1],root={},tr=[];
+  words.forEach(function(w){var cur=root;for(var k=0;k<w.length;k++){var c=w[k];cur[c]=cur[c]||{};cur=cur[c]}if(pk[2]==0)cur["$"]=1});
+  var node=root;for(var k=0;k<q.length;k++){if(!node[q[k]]){node=null;break}node=node[q[k]]}
+  var search=node==null?false:pk[0]==0?!!node["$"]:pk[0]==1;
+  var starts=node==null?false:pk[1]==0?true:!!node["$"];
+  tr.push("walk '"+q+"' "+(node==null?"breaks":"reaches a node"));
+  return {got:JSON.stringify([search,starts]),tr:tr}}
+BL.ll=[
+{n:"Remove Nth Node From End of List",s:"Remove the nth node from the end of a linked list in one pass.",tn:"pointer positions",
+ roles:[{q:"Move fast ahead by…",o:[{t:"n steps"},{t:"n − 1 steps",w:"That leaves slow one node too early, so the wrong node is removed."},{t:"n + 2 steps",w:"Fast runs off the end too early, so slow never reaches the node before the target."}]},
+ {q:"Then move both pointers while…",o:[{t:"fast.next is not null"},{t:"fast is not null",w:"Slow ends on the node to remove, so you delete the one after it."}]},
+ {q:"Remove the node after slow by…",o:[{t:"slow.next = slow.next.next"},{t:"doing nothing to slow.next",w:"The list is unchanged."},{t:"slow = slow.next",w:"That moves a pointer but does not change the list."}]}],
+ tests:[[[1,2,3,4,5],2],[[1],1],[[1,2],1],[[1,2],2],[[1,2,3],3]],
+ brute:function(t){var a=t[0].slice();a.splice(a.length-t[1],1);return JSON.stringify(a)},run:runRemoveNth,
+ code:codeFor},
+{n:"Reorder List",s:"Reorder L0, L1, ..., Ln into L0, Ln, L1, Ln-1, ... in place.",tn:"the two halves",
+ roles:[{q:"Find the middle by moving slow 1 step while fast moves…",o:[{t:"2 steps (slow stops at the middle)"},{t:"1 step (slow ends too close to the end)",w:"The split is then wrong, so the second half is missing nodes."}]},
+ {q:"Reverse the…",o:[{t:"second half"},{t:"first half",w:"The halves are then in the wrong order to interleave."}]},
+ {q:"Interleave the two halves by…",o:[{t:"taking one node from each in turn"},{t:"taking all of the first half, then the second",w:"The result is not the required order."},{t:"taking only the first half",w:"Nodes from the second half are lost."}]}],
+ tests:[[[1,2,3,4]],[[1,2,3,4,5]],[[1]],[[1,2]],[[1,2,3]],[[1,2,3,4,5,6]]],
+ brute:function(t){var a=t[0],out=[],i=0,j=a.length-1;while(i<=j){out.push(a[i]);if(i!==j)out.push(a[j]);i++;j--}return JSON.stringify(out)},
+ run:function(sp,pk,inp){var a=inp[0],n=a.length,split=pk[0]==1?Math.max(0,n-1):Math.ceil(n/2),A=a.slice(0,split),B=a.slice(split);
+   if(pk[1]==0)B=B.reverse();else A=A.reverse();
+   var o=[],i;
+   if(pk[2]==0){for(i=0;i<Math.max(A.length,B.length);i++){if(i<A.length)o.push(A[i]);if(i<B.length)o.push(B[i])}}
+   else if(pk[2]==1){o=A.concat(B)}
+   else{o=A.slice()}
+   return {got:JSON.stringify(o),tr:["first half "+JSON.stringify(A)+"  second half "+JSON.stringify(B)]}},
+ code:codeFor}
+];
+BL.heap=[
+{n:"Meeting Rooms II",s:"Find the minimum number of rooms needed for a set of meeting time intervals.",tn:"rooms in use",
+ roles:[{q:"Sort the meetings by…",o:[{t:"start time"},{t:"end time",w:"A short meeting starting late can be counted as overlapping with an earlier one."},{t:"length",w:"Length ignores where meetings sit in time."}]},
+ {q:"The heap holds…",o:[{t:"end times of meetings in progress"},{t:"start times of all meetings",w:"Start times do not tell you when a room becomes free."},{t:"meeting lengths",w:"Lengths do not tell you when a room becomes free."}]},
+ {q:"For each meeting, if the earliest end time is at or before its start, you…",o:[{t:"pop it (reuse that room)"},{t:"never pop (rooms are never reused)",w:"Every meeting then gets its own room, so the count is too high."},{t:"always pop",w:"Frees rooms that are still in use."}]},
+ {q:"The answer is…",o:[{t:"the largest heap size seen"},{t:"how many rooms were reused",w:"That counts reuses, not the number of rooms needed at the busiest moment."},{t:"the number of meetings",w:"Reused rooms make this too large."}]}],
+ tests:[[[[0,30],[5,10],[15,20]]],[[[7,10],[2,4]]],[[[1,5],[2,3],[4,6]]],[[[0,5],[5,10]]],[[]],[[[1,2],[3,4],[5,6]]],[[[1,10],[2,3],[4,5],[6,7]]],genIv(1,5),genIv(2,6),genIv(3,4),genIv(4,7),genIv(5,6),genIv(6,8),[[[0,1],[8,11],[0,5],[8,9],[4,5],[4,9],[0,3]]]],
+ brute:function(t){var iv=t[0],best=0;iv.forEach(function(x){var c=0;iv.forEach(function(y){if(y[0]<=x[0]&&x[0]<y[1])c++});best=Math.max(best,c)});return best},
+ run:runMeet,code:codeFor},
+];
+BL.graph=[
+{n:"Course Schedule",s:"Given prerequisite pairs, decide whether all courses can be finished.",tn:"courses taken so far",
+ roles:[{q:"Count for each course…",o:[{t:"prerequisites not yet taken (in-degree)"},{t:"courses that depend on it (out-degree)",w:"Counting the wrong direction means courses can be started before their prerequisites."}]},
+ {q:"Start the queue with courses where…",o:[{t:"that count is 0"},{t:"no course depends on it",w:"Those are the last courses, not the first."}]},
+ {q:"When a course is taken, for each dependent course…",o:[{t:"reduce its count by 1"},{t:"increase its count by 1",w:"Counts never reach 0, so nothing else gets started."}]},
+ {q:"All courses can be finished when…",o:[{t:"the number taken equals the number of courses"},{t:"the queue is never empty",w:"The queue empties at the end even when a cycle blocks courses."},{t:"at least one course was taken",w:"One course proves nothing about the others."}]}],
+ tests:[[2,[[1,0]]],[2,[[1,0],[0,1]]],[1,[]],[3,[[1,0],[2,1]]],[4,[[1,0],[2,0],[3,1],[3,2]]],[3,[[0,1],[1,2],[2,0]]],[2,[]],[3,[[1,0],[0,1]]],[4,[[1,0],[2,1],[3,2]]]],
+ brute:function(t){var n=t[0],adj=[],st=[],i;for(i=0;i<n;i++)adj.push([]);t[1].forEach(function(p){adj[p[1]].push(p[0])});
+   function dfs(u){st[u]=1;for(var k=0;k<adj[u].length;k++){var v=adj[u][k];if(st[v]==1)return true;if(!st[v]&&dfs(v))return true}st[u]=2;return false}
+   for(i=0;i<n;i++)if(!st[i]&&dfs(i))return false;return true},
+ run:runCourse,code:codeFor}
+];
+BL.gr=[
+{n:"Merge Intervals",s:"Merge all overlapping intervals.",tn:"merged list so far",
+ roles:[{q:"Sort the intervals by…",o:[{t:"start time"},{t:"end time",w:"Intervals are then merged out of order, so a long one is missed."},{t:"length",w:"Length ignores position on the line."}]},
+ {q:"Two intervals overlap when the next start is…",o:[{t:"at or before the last end"},{t:"strictly before the last end",w:"Touching intervals like [1,4] and [4,5] should merge but do not."}]},
+ {q:"When they overlap, the merged end is…",o:[{t:"the larger of the two ends"},{t:"the current interval's end",w:"A long earlier interval that contains a later one gets cut short."}]}],
+ tests:[[[[1,3],[2,6],[8,10],[15,18]]],[[[1,4],[4,5]]],[[[1,10],[2,3]]],[[[1,4],[0,4]]],[[[5,6],[1,2]]],[[[1,4]]],[[[1,4],[2,3]]]],
+ brute:function(t){var iv=t[0].map(function(x){return x.slice()}).sort(function(a,b){return a[0]-b[0]}),out=[];iv.forEach(function(c){if(out.length&&c[0]<=out[out.length-1][1])out[out.length-1][1]=Math.max(out[out.length-1][1],c[1]);else out.push(c.slice())});return JSON.stringify(out)},
+ run:runMerge,code:codeFor}
+];
+BL.mat=[
+{n:"Rotate Image",s:"Rotate an n × n matrix 90 degrees clockwise in place.",tn:"matrix state",
+ roles:[{q:"Step 1: swap across the main diagonal…",o:[{t:"for each pair above the diagonal (j > i)"},{t:"for every pair, both directions",w:"Every swap is undone by its partner, so the matrix does not change."},{t:"reverse each row instead",w:"That is a different operation, so the final result is off."}]},
+ {q:"Step 2: flip the matrix…",o:[{t:"reverse each row"},{t:"reverse each column",w:"Transpose plus column reversal gives a 180 degree turn, not 90."},{t:"do nothing",w:"Without this step the matrix is only transposed."}]}],
+ tests:[[[[1,2,3],[4,5,6],[7,8,9]]],[[[1]]],[[[1,2],[3,4]]],[[[5,1,9,11],[2,4,8,10],[13,3,6,7],[15,14,12,16]]]],
+ brute:function(t){var a=t[0],n=a.length,r=[];for(var i=0;i<n;i++){r.push([]);for(var j=0;j<n;j++)r[i].push(0)}for(i=0;i<n;i++)for(var j2=0;j2<n;j2++)r[j2][n-1-i]=a[i][j2];return JSON.stringify(r)},
+ run:runRotate,code:codeFor}
+];
+BL.bit=[
+{n:"Sum of Two Integers",s:"Add two integers without using + or −.",tn:"sum and carry",
+ roles:[{q:"The sum without carry is…",o:[{t:"a XOR b"},{t:"a AND b",w:"AND gives the carry positions, not the sum without carry."}]},
+ {q:"The carry is…",o:[{t:"(a AND b) shifted left by 1"},{t:"(a OR b) shifted left by 1",w:"OR marks bits that are set in either number, so carries appear where none should."}]},
+ {q:"Repeat while…",o:[{t:"the carry is not 0"},{t:"a is not equal to b",w:"Equal values do not mean there is no carry left."}]}],
+ tests:[[1,2],[-2,3],[5,-3],[0,0],[-1,1],[100,200],[7,9]],
+ brute:function(t){return t[0]+t[1]},run:runSum,code:codeFor}
+];
+BL.trie=[
+{n:"Implement Trie (Prefix Tree)",s:"Design insert, search and startsWith for strings.",tn:"trie walk",
+ roles:[{q:"search(word) returns true when the walk reaches the last letter and…",o:[{t:"that node is marked as the end of a word"},{t:"the walk reaches that node (regardless of end mark)",w:"search would then match prefixes, like finding “app” when only “apple” was inserted."},{t:"never (search always returns false)",w:"Words you inserted are never found."}]},
+ {q:"startsWith(prefix) returns true when…",o:[{t:"the walk reaches the last letter"},{t:"the walk reaches it and it is marked as a word end",w:"Then startsWith behaves like search, and prefixes of words no longer match."}]},
+ {q:"In insert, after the last letter…",o:[{t:"mark the node as the end of a word"},{t:"do nothing",w:"No word is ever recorded as complete, so search fails."}]}],
+ tests:[[["apple"],"app"],[["apple"],"apple"],[["apple"],"apz"],[["a","ab"],"a"],[[],"x"],[["apple","app"],"app"]],
+ brute:function(t){return JSON.stringify([t[0].indexOf(t[1])>=0,t[0].some(function(w){return w.indexOf(t[1])==0})])},
+ run:runTrie,code:codeFor}
+];
+// Stack and Backtracking: lessons and builders.
+L.stk={t:"Stack",idea:"A stack gives you the most recent item you have not dealt with yet. Use it when each new item must be matched against the latest unmatched one, like brackets or nested structure.",
+sig:["valid or matching brackets","nested structure","most recent unmatched item"],
+code:"stack<char> st;\nfor (char c : s) {\n    if (c is an opener) st.push(c);\n    else {\n        if (st.empty() || st.top() != match(c)) return false;\n        st.pop();\n    }\n}\nreturn st.empty();",
+steps:[{n:"Valid Parentheses",d:"Easy",s:"Check that every opening bracket is closed by the right type of bracket, in the right order.",q:"On a closing bracket, what must be true?",o:["The top of the stack is its matching opener","The stack must have exactly one item","Nothing: closing brackets are only counted"],a:"The most recent unmatched opener must be the one that closes now. If the stack is empty or its top is a different bracket, the string is invalid."}]};
+L.bt={t:"Backtracking",idea:"Backtracking tries one choice, goes deeper, and undoes the choice if it leads nowhere. The undo line is the key: without it, one failed path blocks every later path.",
+sig:["find a path through a grid","every combination or arrangement","explore, then undo"],
+code:"bool dfs(int r, int c, int k) {\n    if (out of bounds or board[r][c] != word[k]) return false;\n    if (k == word.size() - 1) return true;\n    char saved = board[r][c];\n    board[r][c] = '#';              // choose\n    for (auto [dr, dc] : dirs)       // explore\n        if (dfs(r + dr, c + dc, k + 1)) return true;\n    board[r][c] = saved;            // undo\n    return false;\n}",
+steps:[{n:"Word Search",d:"Medium",s:"Determine whether a word can be traced through adjacent cells in a grid, using each cell at most once.",q:"Why must you undo the mark when a path fails?",o:["So other starting cells and paths can use that cell","To save memory","Because the word is always too short"],a:"A failed path must leave no trace. Otherwise its cells look used to every later search."},
+{n:"Word Search II",d:"Hard",s:"Find all words from a list that can be traced through adjacent cells in a grid.",q:"What makes searching many words fast?",o:["One trie shared across a single grid walk","Sorting the words first","A separate grid search for each word"],a:"Walk the grid once while following the trie, and stop a branch as soon as its prefix is not in the trie."}]};
+
+function runBrackets(sp,pk,inp){var s=inp[0],st=[],mp={")":"(","]":"[","}":"{"},tr=[];
+  for(var i=0;i<s.length;i++){var c=s[i];
+    if("([{".indexOf(c)>=0){if(pk[0]==0)st.push(c);else st.pop()}
+    else{var bad=st.length==0||st[st.length-1]!==mp[c];
+      if(bad){if(pk[1]==0){tr.push("closing "+c+" does not match: invalid");return {got:false,tr:tr}}if(pk[1]==2)st.pop()}
+      else{if(pk[2]==0)st.pop()}}
+    tr.push(c+" -> stack "+st.join(""))}
+  return {got:pk[3]==0?st.length==0:true,tr:tr}}
+function runWord(sp,pk,inp){var b=inp[0].map(function(r){return r.slice()}),w=inp[1],R=b.length,C=R?b[0].length:0,tr=[];
+  function dfs(r,c,k){
+    if(r<0||c<0||r>=R||c>=C)return false;
+    if(b[r][c]!==w[k])return false;
+    if(pk[3]==1&&k==0)return true;
+    if(k==w.length-1)return true;
+    var saved=b[r][c];
+    if(pk[0]==0)b[r][c]="#";
+    var dirs=pk[1]==0?[[1,0],[-1,0],[0,1],[0,-1]]:[[1,0],[0,1]],found=false;
+    for(var d=0;d<dirs.length&&!found;d++)found=dfs(r+dirs[d][0],c+dirs[d][1],k+1);
+    if(pk[2]==0)b[r][c]=saved;
+    return found}
+  var got=false;
+  for(var r=0;r<R&&!got;r++)for(var c=0;c<C&&!got;c++)got=dfs(r,c,0);
+  tr.push("result: "+got);
+  return {got:got,tr:tr}}
+BL.stk=[
+{n:"Valid Parentheses",s:"Check that every opening bracket is closed by the right type of bracket, in the right order.",tn:"stack contents",
+ roles:[{q:"On an opening bracket, you…",o:[{t:"push it onto the stack"},{t:"pop the stack",w:"Popping on an opener removes a bracket that has not been closed yet."}]},
+ {q:"On a closing bracket that does not match the top (or the stack is empty), you…",o:[{t:"return false"},{t:"ignore it and continue",w:"A stray closer is silently accepted, so \"]\" alone would count as valid."},{t:"pop the stack anyway",w:"Pops a bracket that does not match, so mismatched strings look valid."}]},
+ {q:"On a closing bracket that does match, you…",o:[{t:"pop the stack"},{t:"do nothing",w:"The matched opener stays, so the stack never empties."}]},
+ {q:"At the end, the string is valid when…",o:[{t:"the stack is empty"},{t:"nothing is checked (return true)",w:"Unclosed openers like \"((\" would be accepted."}]}],
+ tests:[["()"],["()[]{}"],["(]"],["([)]"],["{[]}"],["("],["]"],[""],["(("],["())"]],
+ brute:function(t){var st=[],mp={")":"(","]":"[","}":"{"};for(var i=0;i<t[0].length;i++){var c=t[0][i];if("([{".indexOf(c)>=0)st.push(c);else{if(!st.length||st.pop()!==mp[c])return false}}return st.length==0},
+ run:runBrackets,code:codeFor}
+];
+BL.bt=[
+{n:"Word Search",s:"Determine whether a word can be traced through adjacent cells in a grid, using each cell at most once.",tn:"search from each start cell",
+ roles:[{q:"Before moving on from a cell, you…",o:[{t:"mark it as used"},{t:"do nothing",w:"A path can then reuse the same cell, so \"ABA\" matches \"AB\" with a single A."}]},
+ {q:"Explore neighbours in…",o:[{t:"all four directions"},{t:"only right and down",w:"Paths that go left or up are never tried, so valid words are missed."}]},
+ {q:"When a path from this cell fails, you…",o:[{t:"unmark the cell"},{t:"leave it marked",w:"Later searches see the cell as used and miss words that share it."}]},
+ {q:"A path is a match once…",o:[{t:"the last letter matches"},{t:"the first letter matches",w:"Any single letter in the grid would then count as a word."}]}],
+ tests:[[[["A","B","C","E"],["S","F","C","S"],["A","D","E","E"]],"ABCCED"],[[["A","B","C","E"],["S","F","C","S"],["A","D","E","E"]],"SEE"],[[["A","B","C","E"],["S","F","C","S"],["A","D","E","E"]],"ABCB"],[[["A","B"],["C","D"]],"ABA"],[[["a"]],"a"],[[["a","b"],["c","d"]],"abdc"],[[["a","a"]],"aaa"],[[["b","a"],["a","a"]],"aab"]],
+ brute:function(t){var b=t[0],w=t[1],R=b.length,C=b[0].length,vis=[];for(var i=0;i<R;i++){vis.push([]);for(var j=0;j<C;j++)vis[i].push(false)}
+   function dfs(r,c,k){if(r<0||c<0||r>=R||c>=C||vis[r][c]||b[r][c]!==w[k])return false;if(k==w.length-1)return true;vis[r][c]=true;var f=dfs(r+1,c,k+1)||dfs(r-1,c,k+1)||dfs(r,c+1,k+1)||dfs(r,c-1,k+1);vis[r][c]=false;return f}
+   for(var r=0;r<R;r++)for(var c=0;c<C;c++)if(dfs(r,c,0))return true;return false},
+ run:runWord,code:codeFor}
+];
+// Arrays & Prefix: lesson and builder.
+L.arr={t:"Arrays & Prefix",idea:"Many array problems need one value per position, built from the elements before and after it. Make one pass from the left, one from the right, and combine the two.",
+sig:["product or sum of all other elements","prefix or suffix values","encode a list of strings"],
+code:"// pass 1: left to right, store the product of everything before i\nrun = 1\nfor i in 0..n-1: res[i] = run; run *= a[i]\n// pass 2: right to left, multiply in everything after i\nrun = 1\nfor i in n-1..0: res[i] *= run; run *= a[i]\nreturn res;",
+steps:[{n:"Product of Array Except Self",d:"Medium",s:"Return an array where each entry is the product of all other elements, without division and in O(n).",q:"How do you avoid division?",o:["Store a prefix product, then multiply by a suffix product","Divide the total product by each element","Sort the array first"],a:"A left pass gives the product of everything before each index; a right pass multiplies in everything after it."},
+{n:"Encode and Decode Strings",d:"Medium",s:"Design encode and decode so a list of strings survives being sent as one string, even if the strings contain any character.",q:"How should each string be stored so decoding is unambiguous?",o:["Prefixed with its length and a delimiter","Joined with a comma","Joined with a space"],a:"The length tells the decoder exactly how many characters to read, so no character inside a string can be mistaken for a separator."}]};
+function runProd(sp,pk,inp){var a=inp[0],n=a.length,res=[],tr=[],i,run;
+  for(i=0;i<n;i++)res.push(0);
+  run=[1,0,a[0]][pk[2]];
+  if(pk[0]==0){for(i=0;i<n;i++){res[i]=run;run*=a[i]}}
+  else{for(i=n-1;i>=0;i--){res[i]=run;run*=a[i]}}
+  run=[1,0,a[n-1]][pk[2]];
+  if(pk[1]==0){for(i=n-1;i>=0;i--){res[i]*=run;run*=a[i]}}
+  else{for(i=0;i<n;i++){res[i]*=run;run*=a[i]}}
+  tr.push("result "+JSON.stringify(res));
+  return {got:JSON.stringify(res),tr:tr}}
+BL.arr=[
+{n:"Product of Array Except Self",s:"Return an array where each entry is the product of all other elements, without division and in O(n).",tn:"running products",
+ roles:[{q:"First pass stores, for each index, the product of…",o:[{t:"all elements to its left"},{t:"all elements to its right (then the second pass uses the left side)"}]},
+ {q:"Second pass multiplies each entry by…",o:[{t:"a running product of the elements to its right"},{t:"a running product of the elements to its left",w:"With a left-side first pass, the left elements are counted twice."}]},
+ {q:"Each running product starts at…",o:[{t:"1"},{t:"0",w:"Every entry becomes 0 as soon as the running product starts from 0."},{t:"the first element",w:"That element is then left out of the products of the other positions."}]}],
+ tests:[[[1,2,3,4]],[[-1,1,0,-3,3]],[[2,3]],[[0,0]],[[5]],[[1,0]]],
+ brute:function(t){var a=t[0],out=[];for(var i=0;i<a.length;i++){var p=1;for(var j=0;j<a.length;j++)if(j!==i)p*=a[j];out.push(p)}return JSON.stringify(out)},
+ run:runProd,code:codeFor}
+];
+document.addEventListener("keydown",function(e){
+  if(!R||R.ans||!R.c)return;var n=+e.key;if(n>=1&&n<=4&&n<=R.c.length)answer(n-1);
+});
+home();
+</script>
+</body>
+</html>
