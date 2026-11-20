@@ -172,6 +172,12 @@ function home(){
   on("play",function(){start(null,null,5)});on("l1",mapv);
 }
 function ladderDone(p){return !!L[p]&&(S.l&&S.l[p]||0)>=L[p].steps.length}
+function prog(p,l,st){
+  var q=l>=1?1:Math.min(st[0]/5,1)*Math.min((st[0]?st[1]/st[0]:0)/.7,1),
+      ld=L[p]?Math.min(1,(S.l[p]||0)/L[p].steps.length):q,
+      b=BL[p]?(l>=3?1:0):ld;
+  return Math.round((q+ld+b)/3*100);
+}
 var BTN='class="btn alt" style="font-size:14px;padding:6px 12px"';
 function mapv(){
   var h='<div class="top"><h2>My learning path</h2><button class="btn alt" id="bk" style="font-size:14px;padding:6px 12px">Home</button></div>'+
@@ -185,7 +191,7 @@ function mapv(){
     items.push('<button '+BTN+' data-a="pb" data-p="'+p+'">Problems ('+D.filter(function(d){return d[1]==p}).length+')</button>');
     if(BL[p]&&ladderDone(p))items.push('<button '+BTN+' data-a="bd" data-p="'+p+'">Build</button>');
     h+='<div class="node" style="margin-bottom:10px"><div class="top" style="margin:0"><b>'+P[p]+'</b><span class="tag">'+LVN[l]+'</span></div>'+
-    '<div class="m" style="margin:8px 0"><i style="width:'+(l/3*100)+'%;background:var(--acc)"></i></div>'+
+    '<div class="m" style="margin:8px 0"><i style="width:'+prog(p,l,st)+'%;background:var(--acc)"></i></div>'+
     '<span>'+acc+' · '+st[0]+' answered</span>'+
     '<div class="row" style="margin-top:10px">'+items.join('')+'</div></div>';
   });
