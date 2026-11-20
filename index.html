@@ -137,6 +137,7 @@ var D=[
 var K="patternSpotterV1",S;
 try{S=JSON.parse(localStorage.getItem(K))}catch(e){}
 S=S||{xp:0,streak:0,last:"",best:0,m:{}};
+S.l=S.l||{};S.b=S.b||{};S.m=S.m||{};
 function save(){try{localStorage.setItem(K,JSON.stringify(S))}catch(e){}}
 var app=document.getElementById("app"),R=null,TL=15000,tm=null;
 function lvl(){return Math.floor(S.xp/100)+1}
