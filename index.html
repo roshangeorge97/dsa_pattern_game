@@ -197,19 +197,19 @@ function prog(p,l,st){
 }
 var BTN='class="btn alt" style="font-size:14px;padding:6px 12px"';
 function mapv(){
-  var h='<div class="top"><h2>My learning path</h2><button class="btn alt" id="bk" style="font-size:14px;padding:6px 12px">Home</button></div>'+
-  '<p class="mut">Each pattern moves up as you quiz: Spot it, then Know why, then Build it.</p>';
+  var h='<div class="top"><h2>My learning path</h2><button class="btn alt" id="bk" style="font-size:14px;padding:6px 12px">Home</button></div>';
   Object.keys(P).forEach(function(p){
     if(!D.some(function(d){return d[1]==p}))return;
-    var l=plevel(p),st=(S.st||{})[p]||[0,0],acc=st[0]?Math.round(st[1]/st[0]*100)+'% correct':'not started';
+    var n=BL[p]?BL[p].length:0,done=0,k;
+    for(k=0;k<n;k++)if(S.b&&S.b[p+k])done++;
     var items=[];
     if(L[p])items.push('<button '+BTN+' data-a="ln" data-p="'+p+'">Learn</button>');
     items.push('<button '+BTN+' data-a="pr" data-p="'+p+'">Quiz</button>');
     items.push('<button '+BTN+' data-a="pb" data-p="'+p+'">Problems ('+D.filter(function(d){return d[1]==p}).length+')</button>');
     if(BL[p]&&ladderDone(p))items.push('<button '+BTN+' data-a="bd" data-p="'+p+'">Build</button>');
-    h+='<div class="node" style="margin-bottom:10px"><div class="top" style="margin:0"><b>'+P[p]+'</b><span class="tag">'+LVN[l]+'</span></div>'+
-    '<div class="m" style="margin:8px 0"><i style="width:'+prog(p,l,st)+'%;background:var(--acc)"></i></div>'+
-    '<span>'+acc+' · '+st[0]+' answered</span>'+
+    h+='<div class="node" style="margin-bottom:10px"><b>'+P[p]+'</b>'+
+    '<div class="m" style="margin:8px 0"><i style="width:'+(n?done/n*100:0)+'%;background:var(--acc)"></i></div>'+
+    '<span>'+(n?done+' of '+n+' built':'builder coming soon')+'</span>'+
     '<div class="row" style="margin-top:10px">'+items.join('')+'</div></div>';
   });
   app.innerHTML=h;on("bk",home);
