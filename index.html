@@ -1084,6 +1084,653 @@ BL.arr=[
  brute:function(t){var a=t[0],out=[];for(var i=0;i<a.length;i++){var p=1;for(var j=0;j<a.length;j++)if(j!==i)p*=a[j];out.push(p)}return JSON.stringify(out)},
  run:runProd,code:codeFor}
 ];
+// C++ previews for every builder. Each slot shows the C++ for the step you picked, or a placeholder.
+function cppSlot(pk,arr,k){return pk[k]<0?'/* ___ */':arr[pk[k]]}
+function setCode(key,name,fn){(BL[key]||[]).forEach(function(sp){if(sp.n.replace(/\s*\(.*\)$/,'')==name)sp.code=fn})}
+function slidingCode(cfg){return function(pk){
+  var shrink=cppSlot(pk,cfg.shrink,0),how=cppSlot(pk,cfg.how,1),rec=pk[2]<0?'/* ___ */':cfg.rec[pk[2]],when=pk[2]<0?'after':cfg.when[pk[2]];
+  return cfg.init+"\nint left = 0;\nfor (int right = 0; right < n; right++) {\n    "+cfg.add+"\n"+
+    (when=='before'?'    '+rec+'\n':'')+
+    '    '+how+' ('+shrink+') {\n'+(when=='during'?'        '+rec+'\n':'')+
+    '        '+cfg.rem+'\n        left++;\n    }\n'+(when=='after'?'    '+rec+'\n':'')+'}\nreturn best;'}}
+setCode('win','Longest Substring Without Repeating Characters',slidingCode({init:'int best = 0;',add:'count[s[right]]++;',rem:'count[s[left]]--;',
+  shrink:['count[s[right]] > 1','right - left + 1 > 3','distinct > 2'],how:['while','if'],
+  rec:['best = max(best, right - left + 1);','best = max(best, right - left + 1);'],when:['after','before']}));
+setCode('win','Longest Repeating Character Replacement',slidingCode({init:'int best = 0, maxCount = 0;',add:'count[s[right]]++;\n    maxCount = max(maxCount, count[s[right]]);',rem:'count[s[left]]--;',
+  shrink:['(right - left + 1) - maxCount > k','distinct > k','maxCount > k'],how:['while','if'],
+  rec:['best = max(best, right - left + 1);','best = max(best, right - left + 1);','best = max(best, maxCount);'],when:['after','before','after']}));
+setCode('win','Minimum Window Substring',slidingCode({init:'int best = INT_MAX;',add:'/* add s[right] to the window counts */',rem:'/* remove s[left] from the window counts */',
+  shrink:['windowCovers()','!hasAnyOf(t)','right - left + 1 > (int)t.size()'],how:['while','if'],
+  rec:['if (windowCovers()) best = min(best, right - left + 1);','best = min(best, right - left + 1);','if (windowCovers()) best = min(best, right - left + 1);'],when:['during','after','before']}));
+setCode('two','Valid Palindrome',function(pk){
+  return "int l = 0, r = (int)s.size() - 1;\nwhile (l < r) {\n    "+cppSlot(pk,['while (!isalnum(s[l])) l++;\n    while (!isalnum(s[r])) r--;','/* compare every character */','while (!isalnum(s[l])) l++;'],0)+"\n"+
+  "    if (tolower(s[l]) != tolower(s[r])) {\n        "+cppSlot(pk,['return false;','l++;','r--;'],1)+"\n    } else {\n        "+cppSlot(pk,['l++;\n        r--;','l++;','/* no move: the loop never ends */'],2)+"\n    }\n}\nreturn true;"});
+setCode('two','Container With Most Water',function(pk){
+  var area=cppSlot(pk,['(r - l) * min(h[l], h[r])','(r - l) * max(h[l], h[r])','(r - l) * (h[l] + h[r])'],1),
+      move=cppSlot(pk,['if (h[l] <= h[r]) l++;\n    else r--;','if (h[l] <= h[r]) r--;\n    else l++;','l++;','if (step % 2) l++;\n    else r--;'],0),
+      loop=cppSlot(pk,['l < r','l <= r'],2);
+  return "int l = 0, r = (int)h.size() - 1, best = 0;\nwhile ("+loop+") {\n    best = max(best, "+area+");\n    "+move+"\n}\nreturn best;"});
+setCode('two','3Sum',function(pk){
+  return "sort(a.begin(), a.end());   "+cppSlot(pk,['// sorted ascending','// original order','// sorted descending'],0)+"\nint count = 0;\nfor (int i = 0; i + 2 < n; i++) {\n    "+cppSlot(pk,['if (i > 0 && a[i] == a[i-1]) continue;','if (i > 0 && a[i] == a[i-1]) continue;','/* no duplicate check on i */'],1)+"\n    int l = i + 1, r = n - 1;\n    while (l < r) {\n        int sum = a[i] + a[l] + a[r];\n        if (sum < 0) l++;\n        else if (sum > 0) r--;\n        else {\n            count++;\n            "+cppSlot(pk,['l++; r--;\n            while (l < r && a[l] == a[l-1]) l++;\n            while (l < r && a[r] == a[r+1]) r--;','l++;','break;'],2)+"\n        }\n    }\n}\nreturn count;"});
+setCode('hash','Two Sum',function(pk){
+  var look=cppSlot(pk,['target - a[i]','a[i]'],0),store=pk[1]==1?'seen[a[i]] = i;':'',after=pk[1]==1?'':'seen[a[i]] = i;';
+  return "unordered_map<int, int> seen;\nfor (int i = 0; i < n; i++) {\n    int need = "+look+";\n"+(store?'    '+store+'\n':'')+
+   "    if (seen.count(need)) return {seen[need], i};\n"+(after?'    '+after+'\n':'')+"}\nreturn {};"});
+setCode('hash','Contains Duplicate',function(pk){
+  var check=cppSlot(pk,['seen.count(x)','seen.count(x - 1)'],0),addFirst=pk[1]==1;
+  return "unordered_set<int> seen;\nfor (int x : a) {\n"+(addFirst?'    seen.insert(x);\n':'')+"    if ("+check+") return true;\n"+(addFirst?'':'    seen.insert(x);\n')+"}\nreturn false;"});
+setCode('bs','Find Minimum in Rotated Sorted Array',function(pk){
+  return "int lo = 0, hi = n - 1;\nwhile ("+cppSlot(pk,['lo < hi','lo <= hi'],3)+") {\n    int mid = lo + (hi - lo) / 2;\n    if (a[mid] > "+cppSlot(pk,['a[hi]','a[lo]','a[mid + 1]'],0)+")\n        "+cppSlot(pk,['lo = mid + 1;','hi = mid;','hi = mid - 1;'],1)+"\n    else\n        "+cppSlot(pk,['hi = mid;','lo = mid + 1;','hi = mid - 1;'],2)+"\n}\nreturn a[lo];"});
+setCode('bs','Search in Rotated Sorted Array',function(pk){
+  return "int lo = 0, hi = n - 1;\nwhile ("+cppSlot(pk,['lo <= hi','lo < hi'],3)+") {\n    int mid = lo + (hi - lo) / 2;\n    if (a[mid] == target) return mid;\n    if ("+cppSlot(pk,['a[lo] <= a[mid]','a[lo] < a[mid]','a[mid] >= target'],0)+") {   // left half sorted\n"+
+   "        if ("+cppSlot(pk,['a[lo] <= target && target < a[mid]','target < a[mid]','target <= a[mid]'],1)+") hi = mid - 1;\n        else lo = mid + 1;\n    } else {\n"+
+   "        if ("+cppSlot(pk,['a[mid] < target && target <= a[hi]','target > a[mid]','target >= a[hi]'],2)+") lo = mid + 1;\n        else hi = mid - 1;\n    }\n}\nreturn -1;"});
+setCode('tree','Maximum Depth of Binary Tree',function(pk){
+  return "int depth(TreeNode* node) {\n    if (!node) return "+cppSlot(pk,['0','1','-1'],0)+";\n    return "+cppSlot(pk,['1 + max(depth(node->left), depth(node->right))','max(depth(node->left), depth(node->right))','1 + depth(node->left)'],1)+";\n}"});
+setCode('tree','Validate Binary Search Tree',function(pk){
+  return "bool check(TreeNode* node, long lo, long hi) {\n    if (!node) return true;\n    if (!("+cppSlot(pk,['lo < node->val && node->val < hi','(!node->left || node->val > node->left->val) && (!node->right || node->val < node->right->val)','node->val > lo'],0)+")) return false;\n    return "+
+   cppSlot(pk,['check(node->left, lo, node->val) && check(node->right, node->val, hi)','check(node->left, lo, hi) && check(node->right, lo, hi)','check(node->left, lo, node->val) && check(node->right, lo, hi)'],1)+";\n}"});
+setCode('ll','Remove Nth Node From End of List',function(pk){
+  var gap=cppSlot(pk,['n','n - 1','n + 2'],0),loop=cppSlot(pk,['fast->next','fast'],1);
+  return "ListNode dummy(0, head);\nListNode *slow = &dummy, *fast = &dummy;\nfor (int k = 0; k < "+gap+"; k++) fast = fast->next;\nwhile ("+loop+") {\n    slow = slow->next;\n    fast = fast->next;\n}\n"+
+   cppSlot(pk,['slow->next = slow->next->next;   // remove the nth node','/* leave the list unchanged */','slow = slow->next;   // moves slow only, no removal'],2)});
+setCode('ll','Reorder List',function(pk){
+  return "// split: first half is 0..mid, second half is mid+1..end\nint split = "+cppSlot(pk,['(n + 1) / 2','n - 1'],0)+";\n// reverse the "+cppSlot(pk,['second half','first half'],1)+"\n// interleave: take one node from each in turn\nfor (int i = 0; i < n; i++) { /* first, then second */ }"});
+setCode('heap','Meeting Rooms II',function(pk){
+  return "sort(v.begin(), v.end(), "+cppSlot(pk,['[](auto& x, auto& y){ return x[0] < y[0]; }','[](auto& x, auto& y){ return x[1] < y[1]; }','[](auto& x, auto& y){ return x[1] - x[0] < y[1] - y[0]; }'],0)+");\npriority_queue<int, vector<int>, greater<int>> rooms;   // min-heap of end times\nint best = 0, reuses = 0;\nfor (auto& m : v) {\n    int s = m[0], e = m[1];\n    "+cppSlot(pk,['if (!rooms.empty() && rooms.top() <= s) { rooms.pop(); reuses++; }','/* never pop: rooms are never reused */','if (!rooms.empty()) { rooms.pop(); reuses++; }'],2)+"\n    rooms.push("+cppSlot(pk,['e','s','e - s'],1)+");\n    best = max(best, (int)rooms.size());\n}\nreturn "+cppSlot(pk,['best','reuses','(int)v.size()'],3)+";"});
+setCode('graph','Course Schedule',function(pk){
+  return "vector<vector<int>> adj(n);\nvector<int> indeg(n, 0);\nfor (auto& [a, b] : pre) { adj[b].push_back(a); indeg[a]++; }   // b before a\n"+
+   cppSlot(pk,['// indeg[x] = prerequisites not yet taken','for (int x = 0; x < n; x++) indeg[x] = adj[x].size();   // out-degree'],0)+"\nqueue<int> q;\nfor (int x = 0; x < n; x++)\n    if ("+cppSlot(pk,['indeg[x] == 0','adj[x].empty()'],1)+") q.push(x);\nint taken = 0;\nwhile (!q.empty()) {\n    int x = q.front(); q.pop(); taken++;\n    for (int y : adj[x]) {\n        "+cppSlot(pk,['if (--indeg[y] == 0) q.push(y);','indeg[y]++;'],2)+"\n    }\n}\nreturn "+cppSlot(pk,['taken == n','!q.empty()','taken > 0'],3)+";"});
+setCode('gr','Merge Intervals',function(pk){
+  return "sort(v.begin(), v.end(), "+cppSlot(pk,['[](auto& x, auto& y){ return x[0] < y[0]; }','[](auto& x, auto& y){ return x[1] < y[1]; }','[](auto& x, auto& y){ return x[1] - x[0] < y[1] - y[0]; }'],0)+");\nvector<vector<int>> out;\nfor (auto& cur : v) {\n    if (out.empty() || "+cppSlot(pk,['cur[0] > out.back()[1]','cur[0] >= out.back()[1]'],1)+") {\n        out.push_back(cur);\n    } else {\n        out.back()[1] = "+cppSlot(pk,['max(out.back()[1], cur[1])','cur[1]'],2)+";\n    }\n}\nreturn out;"});
+setCode('mat','Rotate Image',function(pk){
+  return "int n = m.size();\n"+cppSlot(pk,['for (int i = 0; i < n; i++)\n    for (int j = i + 1; j < n; j++)\n        swap(m[i][j], m[j][i]);   // transpose','for (int i = 0; i < n; i++)\n    for (int j = 0; j < n; j++)\n        swap(m[i][j], m[j][i]);','for (auto& row : m) reverse(row.begin(), row.end());'],0)+
+   "\n"+cppSlot(pk,['for (auto& row : m) reverse(row.begin(), row.end());   // flip each row','/* reverse each column */','/* nothing */'],1)});
+setCode('bit','Sum of Two Integers',function(pk){
+  return "int a = x, b = y;\ndo {\n    int sum = "+cppSlot(pk,['a ^ b','a & b'],0)+";\n    int carry = "+cppSlot(pk,['(a & b) << 1','(a | b) << 1'],1)+";\n    a = sum;\n    b = carry;\n} while ("+cppSlot(pk,['b != 0','a != b'],2)+");\nreturn a;"});
+setCode('trie','Implement Trie (Prefix Tree)',function(pk){
+  return "bool search(string w) {\n    Trie* node = walk(w);\n    return node && "+cppSlot(pk,['node->isEnd','true','false'],0)+";\n}\nbool startsWith(string p) {\n    Trie* node = walk(p);\n    return node && "+cppSlot(pk,['true','node->isEnd'],1)+";\n}\nvoid insert(string w) {\n    Trie* cur = root;\n    for (char c : w) {\n        if (!cur->next[c - 'a']) cur->next[c - 'a'] = new Trie();\n        cur = cur->next[c - 'a'];\n    }\n    "+cppSlot(pk,['cur->isEnd = true;','/* do nothing */'],2)+"\n}"});
+setCode('stk','Valid Parentheses',function(pk){
+  return "stack<char> st;\nfor (char c : s) {\n    if (c == '(' || c == '[' || c == '{') "+cppSlot(pk,['st.push(c);','st.pop();'],0)+"\n    else if (st.empty() || st.top() != matching(c)) "+cppSlot(pk,['return false;','/* ignore it */','st.pop();'],1)+"\n    else "+cppSlot(pk,['st.pop();','/* keep the opener */'],2)+"\n}\nreturn "+cppSlot(pk,['st.empty()','true'],3)+";"});
+setCode('bt','Word Search',function(pk){
+  return "bool dfs(int r, int c, int k) {\n    if (r < 0 || c < 0 || r >= R || c >= C || board[r][c] != word[k]) return false;\n    if ("+cppSlot(pk,['k == (int)word.size() - 1','true'],3)+") return true;\n    char saved = board[r][c];\n    "+cppSlot(pk,["board[r][c] = '#';   // mark as used",'/* do not mark */'],0)+"\n    for (auto [dr, dc] : "+cppSlot(pk,['{{1,0},{-1,0},{0,1},{0,-1}}','{{1,0},{0,1}}'],1)+")\n        if (dfs(r + dr, c + dc, k + 1)) return true;\n    "+cppSlot(pk,['board[r][c] = saved;   // undo','/* leave it marked */'],2)+"\n    return false;\n}"});
+setCode('arr','Product of Array Except Self',function(pk){
+  var start=cppSlot(pk,['1','0','a[0]'],2),startR=cppSlot(pk,['1','0','a[n - 1]'],2),
+      d1=pk[0]==1?'for (int i = n - 1; i >= 0; i--)':'for (int i = 0; i < n; i++)',
+      d2=pk[1]==1?'for (int i = 0; i < n; i++)':'for (int i = n - 1; i >= 0; i--)';
+  return "vector<int> res(n);\nint run = "+start+";\n"+d1+" {          // first pass\n    res[i] = run;\n    run *= a[i];\n}\nrun = "+startR+";\n"+d2+" {          // second pass\n    res[i] *= run;\n    run *= a[i];\n}\nreturn res;"});
+// lesson templates that were still English
+L.stk.code="stack<char> st;\nfor (char c : s) {\n    if (c == '(' || c == '[' || c == '{') {\n        st.push(c);\n    } else {\n        if (st.empty() || st.top() != matching(c)) return false;\n        st.pop();\n    }\n}\nreturn st.empty();";
+L.bt.code=L.bt.code.replace('if (out of bounds or board[r][c] != word[k]) return false;','if (r < 0 || c < 0 || r >= R || c >= C || board[r][c] != word[k]) return false;');
+// Batch 1: grid DFS (Number of Islands), tree level-order (Binary Tree Level Order Traversal), heap top-k (Top K Frequent Elements).
+function runIslands(sp,pk,inp){var g=inp[0].map(function(r){return r.split('')}),R=g.length,C=R?g[0].length:0,cnt=0,steps=0,tr=[];
+  function dfs(r,c){if(++steps>5000)throw new Error('loop');
+    if(r<0||c<0||r>=R||c>=C||g[r][c]!=='1')return;
+    if(pk[1]==0)g[r][c]='0';
+    var d=pk[2]==0?[[1,0],[-1,0],[0,1],[0,-1]]:[[1,0],[0,1]];
+    d.forEach(function(x){dfs(r+x[0],c+x[1])})}
+  try{
+    for(var r=0;r<R;r++)for(var c=0;c<C;c++){var start=pk[0]==0?g[r][c]==='1':g[r][c]==='0';if(start){cnt++;dfs(r,c)}}
+    tr.push('islands found: '+cnt);return {got:cnt,tr:tr}
+  }catch(e){return {got:'timeout',tr:['the search never ends: cells are not marked']}}}
+function runLevels(sp,pk,inp){var root=mkT(inp[0]),res=[],q=root?[root]:[],tr=[];
+  while(q.length){var sz=pk[0]==0?q.length:1,level=[];
+    for(var i=0;i<sz&&q.length;i++){var n=q.shift();level.push(n.v);
+      var kids=pk[1]==0?[n.l,n.r]:[n.r,n.l];kids.forEach(function(k){if(k)q.push(k)})}
+    res.push(level);tr.push('level '+res.length+': '+JSON.stringify(level))}
+  var got=pk[2]==0?res:res.reduce(function(a,b){return a.concat(b)},[]);
+  return {got:JSON.stringify(got),tr:tr}}
+function runTopK(sp,pk,inp){var nums=inp[0],k=inp[1],freq=new Map(),tr=[];
+  nums.forEach(function(x,idx){if(pk[2]==0)freq.set(x,(freq.get(x)||0)+1);else if(!freq.has(x))freq.set(x,idx)});
+  var items=[];freq.forEach(function(c,v){items.push({v:v,c:c})});
+  var key=function(it){return pk[1]==0?it.c:it.v},h=[];
+  items.forEach(function(it){h.push(it);
+    if(h.length>k){var m=0;for(var j=1;j<h.length;j++){var less=key(h[j])<key(h[m]);if(pk[0]==0?less:!less&&key(h[j])!==key(h[m]))m=j}h.splice(m,1)}});
+  var got=h.map(function(x){return x.v}).sort(function(a,b){return a-b});
+  tr.push('kept '+JSON.stringify(h));
+  return {got:JSON.stringify(got),tr:tr}}
+BL.graph.push({n:"Number of Islands",s:"Count connected groups of land cells in a grid of 1s and 0s.",tn:"islands found",
+ roles:[{q:"Start a new island when the scan finds…",o:[{t:"an unvisited land cell (1)"},{t:"a water cell (0)",w:"That counts water as islands, so the count is far too high."}]},
+ {q:"Mark a visited cell by…",o:[{t:"setting it to 0"},{t:"doing nothing",w:"The same land cells are visited forever, so the search never ends."}]},
+ {q:"Explore neighbours in…",o:[{t:"all four directions"},{t:"only down and right",w:"Islands that extend up or left are cut short."}]}],
+ tests:[[["11110","11010","11000","00000"]],[["11000","11000","00100","00011"]],[["111","010","111"]],[["10101","01010","10101"]],[[]],[["0"]]],
+ brute:function(t){var g=t[0].map(function(r){return r.split('')}),R=g.length,C=R?g[0].length:0,n=0;
+   function d(r,c){if(r<0||c<0||r>=R||c>=C||g[r][c]!=='1')return;g[r][c]='0';d(r+1,c);d(r-1,c);d(r,c+1);d(r,c-1)}
+   for(var r=0;r<R;r++)for(var c=0;c<C;c++)if(g[r][c]==='1'){n++;d(r,c)}return n},
+ run:runIslands,
+ code:function(pk){var start=pk[0]<0?'/* ___ */':(pk[0]==0?"grid[r][c] == '1'":"grid[r][c] == '0'"),
+   mark=pk[1]<0?'/* ___ */':(pk[1]==0?"grid[r][c] = '0';   // mark visited":'/* do not mark */'),
+   dirs=pk[2]<0?'/* ___ */':(pk[2]==0?'{{1,0},{-1,0},{0,1},{0,-1}}':'{{1,0},{0,1}}');
+   return "int count = 0;\nfor (int r = 0; r < R; r++)\n    for (int c = 0; c < C; c++)\n        if ("+start+") { count++; dfs(r, c); }\n\nvoid dfs(int r, int c) {\n    if (r < 0 || c < 0 || r >= R || c >= C || grid[r][c] != '1') return;\n    "+mark+"\n    for (auto [dr, dc] : "+dirs+")\n        dfs(r + dr, c + dc);\n}\nreturn count;"}});
+BL.tree.push({n:"Binary Tree Level Order Traversal",s:"Return the node values of a binary tree level by level.",tn:"level being built",
+ roles:[{q:"Each level is built from…",o:[{t:"the nodes that were in the queue when the level started"},{t:"one node at a time",w:"Each node becomes its own level, so the result has too many levels."}]},
+ {q:"Add children to the queue in order…",o:[{t:"left, then right"},{t:"right, then left",w:"Each level comes out in reverse order."}]},
+ {q:"Return…",o:[{t:"a list of levels"},{t:"one flat list of values",w:"The level boundaries are lost."}]}],
+ tests:[[[3,9,20,null,null,15,7]],[[1]],[[]],[[1,2,3,4,5,6,7]],[[1,null,2,3]]],
+ brute:function(t){var root=mkT(t[0]),res=[],q=root?[root]:[];while(q.length){var sz=q.length,lv=[];for(var i=0;i<sz;i++){var n=q.shift();lv.push(n.v);if(n.l)q.push(n.l);if(n.r)q.push(n.r)}res.push(lv)}return JSON.stringify(res)},
+ run:runLevels,
+ code:function(pk){return "vector<vector<int>> res;\nqueue<TreeNode*> q;\nif (root) q.push(root);\nwhile (!q.empty()) {\n    "+(pk[0]==1?'int sz = 1;   // one node per level':(pk[0]<0?'int sz = /* ___ */;':'int sz = q.size();'))+"\n    vector<int> level;\n    for (int i = 0; i < sz; i++) {\n        TreeNode* node = q.front(); q.pop();\n        level.push_back(node->val);\n        "+(pk[1]==1?'if (node->right) q.push(node->right);\n        if (node->left) q.push(node->left);':(pk[1]<0?'/* ___ */':'if (node->left) q.push(node->left);\n        if (node->right) q.push(node->right);'))+"\n    }\n    res.push_back(level);\n}\nreturn "+(pk[2]==1?'flatten(res);   // one flat list':(pk[2]<0?'/* ___ */;':'res;'))}});
+BL.heap.push({n:"Top K Frequent Elements",s:"Return the k most frequent elements of an array.",tn:"heap contents",
+ roles:[{q:"Use a heap of size k that drops the…",o:[{t:"least frequent item"},{t:"most frequent item",w:"The heap keeps the least frequent items, so the answer is wrong."}]},
+ {q:"Compare heap items by…",o:[{t:"how many times each value appears"},{t:"the value itself",w:"Values, not frequencies, decide what is kept."}]},
+ {q:"Count occurrences with…",o:[{t:"a hash map of counts"},{t:"the first index where each value appears",w:"Position is not a count."}]}],
+ tests:[[[1,1,1,2,2,3],2],[[1],1],[[4,4,4,5,5,6,6,6,6],2],[[1,2,3,1,2,1],1],[[-1,-1,2],1],[[1,2,2,3,3,3],2],[[5,5,5,6,6,7,8,8,8,8],2]],
+ brute:function(t){var c={};t[0].forEach(function(x){c[x]=(c[x]||0)+1});var ks=Object.keys(c).map(Number).sort(function(a,b){return c[b]-c[a]});return JSON.stringify(ks.slice(0,t[1]).sort(function(a,b){return a-b}))},
+ run:runTopK,
+ code:function(pk){return "unordered_map<int, int> freq;\nfor (int x : nums) "+(pk[2]==1?'freq.emplace(x, /* first index */ 0);':(pk[2]<0?'/* ___ */':'freq[x]++;'))+"\n"+
+   (pk[0]==1?'priority_queue<pair<int,int>> h;   // max-heap':'priority_queue<pair<int,int>, vector<pair<int,int>>, greater<pair<int,int>>> h;   // min-heap')+"\nfor (auto [v, c] : freq) {\n    "+(pk[1]==1?'h.push({v, c});   // compares by value':(pk[1]<0?'/* ___ */':'h.push({c, v});   // compares by count'))+"\n    if (h.size() > k) h.pop();   "+(pk[0]==1?'// drops the most frequent':'// drops the least frequent')+"\n}\nreturn values in h;"}});
+// Batch 2: remaining medium graph and tree problems.
+function ufFind(p,x){while(p[x]!==x)x=p[x];return x}
+function runComponents(sp,pk,inp){var n=inp[0],E=inp[1],p=[];for(var i=0;i<n;i++)p.push(i);var comp=pk[0]==0?n:0,tr=[];
+  E.forEach(function(e){var a=ufFind(p,e[0]),b=ufFind(p,e[1]);if(a!==b){p[a]=b;comp=pk[1]==0?comp-1:comp+1}});
+  return {got:comp,tr:['components now '+comp]}}
+function runValidTree(sp,pk,inp){var n=inp[0],E=inp[1],p=[];for(var i=0;i<n;i++)p.push(i);
+  if(pk[0]==0?E.length!==n-1:E.length<n-1)return {got:false,tr:['edge count rules it out']};
+  var comp=n,tr=[];
+  for(var k=0;k<E.length;k++){var e=E[k],a=ufFind(p,e[0]),b=ufFind(p,e[1]);
+    if(a===b){if(pk[1]==0)return {got:false,tr:['edge '+e+' closes a cycle']};continue}
+    p[a]=b;comp--}
+  return {got:comp===1,tr:['components '+comp]}}
+function runClone(sp,pk,inp){var adj=inp[0],orig=adj.map(function(_,i){return {id:i+1,nb:[]}});
+  adj.forEach(function(nbs,i){orig[i].nb=nbs.map(function(id){return orig[id-1]})});
+  var map=new Map(),steps=0,tr=[];
+  function cl(node){if(++steps>1000)throw new Error('loop');
+    if(pk[0]==0&&map.has(node))return map.get(node);
+    var c={id:node.id,nb:[]};map.set(node,c);
+    node.nb.forEach(function(x){c.nb.push(pk[1]==0?cl(x):x)});return c}
+  try{
+    if(!orig.length)return {got:'[]|new',tr:['empty graph']};
+    cl(orig[0]);
+    var ids=[],shares=false,clones=Array.from(map.values()).sort(function(a,b){return a.id-b.id});
+    clones.forEach(function(c){ids.push(c.nb.map(function(x){return x.id}));c.nb.forEach(function(x){if(orig.indexOf(x)>=0)shares=true})});
+    tr.push('copied '+clones.length+' nodes');
+    return {got:JSON.stringify(ids)+'|'+(shares?'shared':'new'),tr:tr}
+  }catch(e){return {got:'timeout',tr:['the copy never finishes: cycles are copied forever']}}}
+function runPacific(sp,pk,inp){var h=inp[0],R=h.length,C=R?h[0].length:0;
+  function reach(starts){var seen=[],q=[],r,c;for(r=0;r<R;r++){seen.push([]);for(c=0;c<C;c++)seen[r].push(false)}
+    starts.forEach(function(s){if(!seen[s[0]][s[1]]){seen[s[0]][s[1]]=true;q.push(s)}});
+    while(q.length){var cur=q.shift();[[1,0],[-1,0],[0,1],[0,-1]].forEach(function(d){var nr=cur[0]+d[0],nc=cur[1]+d[1];
+      if(nr<0||nc<0||nr>=R||nc>=C||seen[nr][nc])return;
+      var ok=pk[0]==0?h[nr][nc]>=h[cur[0]][cur[1]]:h[nr][nc]<=h[cur[0]][cur[1]];
+      if(ok){seen[nr][nc]=true;q.push([nr,nc])}})}
+    return seen}
+  var pac=[],atl=[];for(var r=0;r<R;r++)for(var c=0;c<C;c++){if(r==0||c==0)pac.push([r,c]);if(r==R-1||c==C-1)atl.push([r,c])}
+  var P=reach(pac),A=reach(atl),res=[];
+  for(var y=0;y<R;y++)for(var x=0;x<C;x++){var inP=P[y][x],inA=A[y][x];
+    if(pk[1]==0?(inP&&inA):(inP||inA))res.push([y,x])}
+  return {got:JSON.stringify(res),tr:['cells that reach both oceans: '+res.length]}}
+function runLCA(sp,pk,inp){var node=mkT(inp[0]),p=inp[1],q=inp[2],tr=[];
+  while(node){tr.push('at '+node.v);
+    if(p<node.v&&q<node.v){node=pk[0]==0?node.l:node.r}
+    else if(p>node.v&&q>node.v){node=pk[1]==0?node.r:node.l}
+    else{if(pk[2]==0)return {got:node.v,tr:tr};node=node.l}}
+  return {got:null,tr:tr}}
+function runKth(sp,pk,inp){var root=mkT(inp[0]),k=inp[1],list=[];
+  function walk(n){if(!n)return;if(pk[0]==0){walk(n.l);list.push(n.v);walk(n.r)}else{list.push(n.v);walk(n.l);walk(n.r)}}
+  walk(root);var got=pk[1]==0?list[k-1]:list[list.length-1];
+  return {got:got,tr:['visited order '+list.join(', ')]}}
+function runBuild(sp,pk,inp){var pre=inp[0],ino=inp[1],pi=0;
+  function build(il,ir){if(il>ir||pi>=pre.length)return null;
+    var v=pk[0]==0?pre[pi++]:pre[pre.length-1-(pi++)],idx=ino.indexOf(v);
+    if(idx<il||idx>ir)return null;
+    var node={v:v,l:null,r:null};
+    if(pk[2]==0){node.l=pk[1]==0?build(il,idx-1):build(idx+1,ir);node.r=pk[1]==0?build(idx+1,ir):build(il,idx-1)}
+    else{node.r=pk[1]==0?build(idx+1,ir):build(il,idx-1);node.l=pk[1]==0?build(il,idx-1):build(idx+1,ir)}
+    return node}
+  var root=build(0,ino.length-1);
+  return {got:ser(root),tr:['rebuilt '+ser(root)]}}
+function ser(n){return n?n.v+'('+ser(n.l)+')('+ser(n.r)+')':'#'}
+BL.graph.push({n:"Number of Connected Components in an Undirected Graph",s:"Count the connected components in an undirected graph with n nodes and a list of edges.",tn:"components",
+ roles:[{q:"Start the count at…",o:[{t:"n (every node is its own component)"},{t:"0",w:"Nodes are never counted, so the result is too small."}]},
+ {q:"When an edge joins two different groups, the count…",o:[{t:"goes down by 1"},{t:"goes up by 1",w:"Each merge is counted as a new component."}]}],
+ tests:[[5,[[0,1],[1,2],[3,4]]],[5,[[0,1],[1,2],[2,3],[3,4]]],[4,[]],[3,[[0,1],[1,2],[2,0]]],[1,[]],[6,[[0,1],[2,3],[4,5],[1,2]]]],
+ brute:function(t){var n=t[0],adj=[],seen=[],c=0,i;for(i=0;i<n;i++){adj.push([]);seen.push(false)}t[1].forEach(function(e){adj[e[0]].push(e[1]);adj[e[1]].push(e[0])});
+   function d(u){seen[u]=true;adj[u].forEach(function(v){if(!seen[v])d(v)})}for(i=0;i<n;i++)if(!seen[i]){c++;d(i)}return c},
+ run:runComponents,
+ code:function(pk){return "vector<int> parent(n);\niota(parent.begin(), parent.end(), 0);\nint components = "+(pk[0]==1?'0;':(pk[0]<0?'/* ___ */;':'n;'))+"\nint find(int x) { return parent[x] == x ? x : parent[x] = find(parent[x]); }\nfor (auto& e : edges) {\n    int a = find(e[0]), b = find(e[1]);\n    if (a != b) {\n        parent[a] = b;\n        "+(pk[1]==1?'components++;   // wrong direction':(pk[1]<0?'/* ___ */':'components--;'))+"\n    }\n}\nreturn components;"}});
+BL.graph.push({n:"Graph Valid Tree",s:"Given n nodes and undirected edges, check whether they form a valid tree.",tn:"components",
+ roles:[{q:"First check the edge count:",o:[{t:"it must be exactly n - 1"},{t:"it must be at least n - 1",w:"Too many edges can still leave some nodes unconnected, so the count alone is not enough."}]},
+ {q:"When an edge joins two nodes already in the same group (a cycle):",o:[{t:"it is not a tree: return false"},{t:"ignore it and keep going",w:"Cycles are allowed through, so a graph with a cycle can be accepted."}]}],
+ tests:[[5,[[0,1],[0,2],[0,3],[1,4]]],[5,[[0,1],[1,2],[2,3],[1,3],[1,4]]],[1,[]],[2,[]],[3,[[0,1],[1,2],[2,0]]],[4,[[0,1],[2,3]]]],
+ brute:function(t){var n=t[0],E=t[1];if(E.length!==n-1)return false;var adj=[],seen=[];for(var i=0;i<n;i++){adj.push([]);seen.push(false)}E.forEach(function(e){adj[e[0]].push(e[1]);adj[e[1]].push(e[0])});
+   function d(u){seen[u]=true;adj[u].forEach(function(v){if(!seen[v])d(v)})}d(0);return seen.every(function(x){return x})},
+ run:runValidTree,
+ code:function(pk){return "if ("+(pk[0]==1?'edges.size() < n - 1':(pk[0]<0?'/* ___ */':'edges.size() != n - 1'))+") return false;\nvector<int> parent(n);\niota(parent.begin(), parent.end(), 0);\nint components = n;\nfor (auto& e : edges) {\n    int a = find(e[0]), b = find(e[1]);\n    if (a == b) "+(pk[1]==1?'{ /* ignore the cycle */ }':(pk[1]<0?'/* ___ */':'return false;'))+"\n    else { parent[a] = b; components--; }\n}\nreturn components == 1;"}});
+BL.graph.push({n:"Clone Graph",s:"Return a deep copy of a connected undirected graph given one node.",tn:"nodes copied so far",
+ roles:[{q:"Before copying a node, check whether it is already in the map:",o:[{t:"yes, return the existing copy",w:""},{t:"no check",w:"A cycle makes the copy loop forever."}]},
+ {q:"For each neighbour, the copy should…",o:[{t:"copy the neighbour (recursively) and link the copy"},{t:"link the original neighbour",w:"The copy still points into the original graph, so it is not a deep copy."}]}],
+ tests:[[[[2,4],[1,3],[2,4],[1,3]]],[[]],[[[2],[1]]],[[[2,3],[1,3],[1,2]]],[[[2],[1,3],[2]]]],
+ brute:function(t){var adj=t[0];if(!adj.length)return '[]|new';var o=adj.map(function(_,i){return {id:i+1,nb:[]}});adj.forEach(function(n,i){o[i].nb=n.map(function(id){return o[id-1]})});
+   var m=new Map();function cl(x){if(m.has(x))return m.get(x);var c={id:x.id,nb:[]};m.set(x,c);x.nb.forEach(function(y){c.nb.push(cl(y))});return c}cl(o[0]);
+   var ids=Array.from(m.values()).sort(function(a,b){return a.id-b.id}).map(function(c){return c.nb.map(function(x){return x.id})});return JSON.stringify(ids)+'|new'},
+ run:runClone,
+ code:function(pk){return "unordered_map<Node*, Node*> copy;\nfunction<Node*(Node*)> clone = [&](Node* node) -> Node* {\n    "+(pk[0]==1?'/* no visited check */':(pk[0]<0?'/* ___ */':'if (copy.count(node)) return copy[node];'))+"\n    Node* c = new Node(node->val);\n    copy[node] = c;\n    for (Node* nb : node->neighbors)\n        "+(pk[1]==1?'c->neighbors.push_back(nb);   // shares the old node':(pk[1]<0?'/* ___ */':'c->neighbors.push_back(clone(nb));'))+"\n    return c;\n};\nreturn clone(node);"}});
+BL.graph.push({n:"Pacific Atlantic Water Flow",s:"Find all grid cells from which water can flow to both the Pacific and Atlantic oceans.",tn:"cells reaching each ocean",
+ roles:[{q:"Search from the ocean edges, moving to a neighbour when its height is…",o:[{t:"at least the current height (water flows back uphill)"},{t:"at most the current height",w:"That walks the wrong way, so cells are found that water cannot reach."}]},
+ {q:"A cell is an answer when it is reached by…",o:[{t:"both oceans"},{t:"either ocean",w:"Cells that reach only one ocean are included."}]}],
+ tests:[[[[1,2,2,3,5],[3,2,3,4,4],[2,4,5,3,1],[6,7,1,4,5],[5,1,1,2,4]]],[[[1]]],[[[1,2],[4,3]]],[[[3,3,3],[3,1,3],[0,2,4]]]],
+ brute:function(t){var h=t[0],R=h.length,C=h[0].length,res=[];
+   function can(r,c,ocean){var seen={};function d(y,x){var k=y+','+x;if(seen[k])return false;seen[k]=1;if(ocean(y,x))return true;return [[1,0],[-1,0],[0,1],[0,-1]].some(function(q){var ny=y+q[0],nx=x+q[1];return ny>=0&&nx>=0&&ny<R&&nx<C&&h[ny][nx]<=h[y][x]&&d(ny,nx)})}return d(r,c)}
+   for(var r=0;r<R;r++)for(var c=0;c<C;c++){if(can(r,c,function(y,x){return y==0||x==0})&&can(r,c,function(y,x){return y==R-1||x==C-1}))res.push([r,c])}
+   return JSON.stringify(res)},
+ run:runPacific,
+ code:function(pk){return "int R = h.size(), C = h[0].size();\nvector<vector<bool>> pac(R, vector<bool>(C)), atl(R, vector<bool>(C));\n// BFS from the Pacific edges (top row, left column) and the Atlantic edges (bottom row, right column)\n// move to neighbour (nr, nc) when "+(pk[0]==1?'h[nr][nc] <= h[r][c]':(pk[0]<0?'/* ___ */':'h[nr][nc] >= h[r][c]'))+"\nfor (int r = 0; r < R; r++)\n    for (int c = 0; c < C; c++)\n        if ("+(pk[1]==1?'pac[r][c] || atl[r][c]':(pk[1]<0?'/* ___ */':'pac[r][c] && atl[r][c]'))+") res.push_back({r, c});\nreturn res;"}});
+BL.tree.push({n:"Lowest Common Ancestor of a Binary Search Tree",s:"Find the lowest node that has both p and q as descendants in a binary search tree.",tn:"node being examined",
+ roles:[{q:"If both values are smaller than the current node, go…",o:[{t:"left"},{t:"right",w:"Going right moves away from both values."}]},
+ {q:"If both values are larger than the current node, go…",o:[{t:"right"},{t:"left",w:"Going left moves away from both values."}]},
+ {q:"Otherwise the values split here, so…",o:[{t:"this node is the answer"},{t:"keep searching left",w:"The split point is the answer; searching on skips it."}]}],
+ tests:[[[6,2,8,0,4,7,9,null,null,3,5],2,8],[[6,2,8,0,4,7,9,null,null,3,5],2,4],[[2,1],2,1],[[6,2,8,0,4,7,9,null,null,3,5],3,5],[[5,3,6,2,4,null,null,1],1,4],[[5,3,6,2,4,null,null,1],6,4]],
+ brute:function(t){function path(v){var out=[],n=mkT(t[0]);while(n){out.push(n.v);if(n.v==v)break;n=v<n.v?n.l:n.r}return out}
+   var a=path(t[1]),b=path(t[2]),last=null;for(var i=0;i<Math.min(a.length,b.length)&&a[i]===b[i];i++)last=a[i];return last},
+ run:runLCA,
+ code:function(pk){return "TreeNode* lca(TreeNode* node, int p, int q) {\n    while (node) {\n        if (p < node->val && q < node->val) node = "+(pk[0]==1?'node->right;':(pk[0]<0?'/* ___ */;':'node->left;'))+"\n        else if (p > node->val && q > node->val) node = "+(pk[1]==1?'node->left;':(pk[1]<0?'/* ___ */;':'node->right;'))+"\n        else "+(pk[2]==1?'node = node->left;   // keep searching':(pk[2]<0?'/* ___ */':'return node;'))+"\n    }\n    return nullptr;\n}"}});
+BL.tree.push({n:"Kth Smallest Element in a BST",s:"Find the kth smallest value in a binary search tree.",tn:"visit order",
+ roles:[{q:"Visit nodes in…",o:[{t:"in-order (left, node, right)"},{t:"pre-order (node, left, right)",w:"Pre-order does not visit values in sorted order."}]},
+ {q:"Return the…",o:[{t:"kth value visited"},{t:"last value visited",w:"The last visited value is the largest, not the kth smallest."}]}],
+ tests:[[[3,1,4,null,2],1],[[5,3,6,2,4,null,null,1],3],[[2,1,3],2],[[1],1],[[5,3,6,2,4,null,null,1],1]],
+ brute:function(t){var list=[];(function w(n){if(!n)return;w(n.l);list.push(n.v);w(n.r)})(mkT(t[0]));return list[t[1]-1]},
+ run:runKth,
+ code:function(pk){return "vector<int> list;\nvoid walk(TreeNode* node) {\n    if (!node) return;\n    "+(pk[0]==1?'list.push_back(node->val);\n    walk(node->left);\n    walk(node->right);':(pk[0]<0?'/* ___ */':'walk(node->left);\n    list.push_back(node->val);\n    walk(node->right);'))+"\n}\nwalk(root);\nreturn "+(pk[1]==1?'list.back();   // last visited':(pk[1]<0?'/* ___ */;':'list[k - 1];'))+";"}});
+BL.tree.push({n:"Construct Binary Tree from Preorder and Inorder Traversal",s:"Rebuild a binary tree from its preorder and inorder traversal arrays.",tn:"tree built so far",
+ roles:[{q:"The root of a subtree is…",o:[{t:"the next value in preorder"},{t:"the last value in preorder",w:"The root of a subtree is always first in preorder."}]},
+ {q:"Split inorder at the root: the left subtree is…",o:[{t:"the values before the root in inorder"},{t:"the values after the root in inorder",w:"Left and right are swapped."}]},
+ {q:"Build the children in order…",o:[{t:"left first, then right"},{t:"right first, then left",w:"The preorder pointer is consumed in the wrong order."}]}],
+ tests:[[[3,9,20,15,7],[9,3,15,20,7]],[[-1],[-1]],[[1,2],[1,2]],[[1,2,3],[2,1,3]],[[3,2,1],[1,2,3]],[[1,2,4,5,3,6,7],[4,2,5,1,6,3,7]]],
+ brute:function(t){var pre=t[0],ino=t[1],pi=0;function b(il,ir){if(il>ir||pi>=pre.length)return null;var v=pre[pi++],idx=ino.indexOf(v);var n={v:v,l:null,r:null};n.l=b(il,idx-1);n.r=b(idx+1,ir);return n}return ser(b(0,ino.length-1))},
+ run:runBuild,
+ code:function(pk){return "int pi = 0;\nTreeNode* build(int il, int ir) {\n    if (il > ir) return nullptr;\n    int v = "+(pk[0]==1?'preorder[n - 1 - pi++];':(pk[0]<0?'/* ___ */;':'preorder[pi++];'))+"\n    TreeNode* node = new TreeNode(v);\n    int idx = pos[v];   // index of v in inorder\n    "+(pk[2]==1?'node->right = build('+(pk[1]==1?'il, idx - 1':'idx + 1, ir')+');\n    node->left = build('+(pk[1]==1?'idx + 1, ir':'il, idx - 1')+');':'node->left = build('+(pk[1]==1?'idx + 1, ir':'il, idx - 1')+');\n    node->right = build('+(pk[1]==1?'il, idx - 1':'idx + 1, ir')+');')+"\n    return node;\n}"}});
+// Batch 3: DP, bit, greedy, and easy linked-list / tree problems.
+function sameTree(a,b,pk){if(!a&&!b)return pk[0]==0;if(!a||!b||a.v!==b.v)return pk[1]==0?false:true;return pk[2]==0?sameTree(a.l,b.l,pk)&&sameTree(a.r,b.r,pk):sameTree(a.l,b.l,pk)}
+function treeFrom(arr){return mkT(arr)}
+function mkCycle(vals,pos){var nodes=vals.map(function(v){return {v:v,next:null}});for(var i=0;i<nodes.length-1;i++)nodes[i].next=nodes[i+1];if(pos>=0&&nodes.length)nodes[nodes.length-1].next=nodes[pos];return nodes.length?nodes[0]:null}
+function bitsOf(n){var c=0;while(n){c+=n&1;n=n>>>1}return c}
+function guard(fn){try{return fn()}catch(e){return {got:'timeout',tr:['never ends']}}}
+var PRE_DP=[];
+BL.dp.push({n:"Maximum Subarray",s:"Find the contiguous subarray with the largest sum.",tn:"best sum so far",
+ roles:[{q:"Extend the running sum with x as…",o:[{t:"max(x, cur + x): restart if the running sum is negative"},{t:"cur + x: always extend",w:"A negative running sum keeps dragging the answer down."},{t:"max(cur, x): ignore the running sum",w:"Sums of several elements are never considered."}]},
+ {q:"Record the answer as…",o:[{t:"max(best, cur)"},{t:"cur (the latest run only)",w:"Only the last run is kept, so earlier, larger runs are lost."}]}],
+ tests:[[[-2,1,-3,4,-1,2,1,-5,4]],[[1]],[[5,4,-1,7,8]],[[-1]],[[-2,-1]],[[1,-1,1]],[[-2,1]]],
+ brute:function(t){var a=t[0],b=-Infinity;for(var i=0;i<a.length;i++){var s=0;for(var j=i;j<a.length;j++){s+=a[j];b=Math.max(b,s)}}return b},
+ run:function(sp,pk,inp){var a=inp[0],cur=a[0],best=a[0];for(var i=1;i<a.length;i++){var x=a[i];cur=[Math.max(x,cur+x),cur+x,Math.max(cur,x)][pk[0]];best=pk[1]==0?Math.max(best,cur):cur}return {got:best,tr:['best '+best]}},
+ code:function(pk){return "int cur = nums[0], best = nums[0];\nfor (int i = 1; i < n; i++) {\n    cur = "+(pk[0]<0?'/* ___ */':['max(nums[i], cur + nums[i])','cur + nums[i]','max(cur, nums[i])'][pk[0]])+";\n    "+(pk[1]==1?'best = cur;':(pk[1]<0?'/* ___ */':'best = max(best, cur);'))+"\n}\nreturn best;"}});
+BL.dp.push({n:"Maximum Product Subarray",s:"Find the contiguous subarray with the largest product.",tn:"best product so far",
+ roles:[{q:"The largest product ending at x uses…",o:[{t:"x, max * x, or min * x (a negative min can become the max)"},{t:"x or max * x only",w:"A negative number times the smallest product is ignored, so the answer is missed."},{t:"max * x only",w:"A new subarray starting at x is ignored."}]},
+ {q:"The answer is…",o:[{t:"the best value seen at any index"},{t:"the value at the last index",w:"The best subarray can end anywhere."}]}],
+ tests:[[[2,3,-2,4]],[[-2,0,-1]],[[-2,3,-4]],[[-2]],[[0,2]],[[2,-5,-2,-4,3]],[[-2,-1]]],
+ brute:function(t){var a=t[0],b=-Infinity;for(var i=0;i<a.length;i++){var p=1;for(var j=i;j<a.length;j++){p*=a[j];b=Math.max(b,p)}}return b},
+ run:function(sp,pk,inp){var a=inp[0],mx=a[0],mn=a[0],best=a[0];for(var i=1;i<a.length;i++){var x=a[i],c=[x,mx*x,mn*x];if(pk[0]==1)c=[x,mx*x];if(pk[0]==2)c=[mx*x];var nmx=Math.max.apply(null,c),nmn=Math.min.apply(null,c);mx=nmx;mn=nmn;best=pk[1]==0?Math.max(best,mx):mx}return {got:best,tr:['best '+best]}},
+ code:function(pk){return "int mx = nums[0], mn = nums[0], best = nums[0];\nfor (int i = 1; i < n; i++) {\n    int x = nums[i];\n    int hi = "+(pk[0]==1?'max(x, mx * x)':(pk[0]==2?'mx * x':'max({x, mx * x, mn * x})'))+";\n    mn = min({x, mx * x, mn * x});\n    mx = hi;\n    "+(pk[1]==1?'best = mx;   // last index only':'best = max(best, mx);')+"\n}\nreturn best;"}});
+BL.gr.push({n:"Jump Game",s:"Each value is your max jump length; can you reach the last index?",tn:"farthest index reached",
+ roles:[{q:"Track the farthest index reachable as…",o:[{t:"max(farthest, i + nums[i])"},{t:"i + nums[i] (from the latest index only)",w:"Reach from earlier indexes is forgotten."}]},
+ {q:"Return false as soon as…",o:[{t:"i > farthest (this index cannot be reached)"},{t:"i >= farthest and i is not the last index",w:"Indexes that can be reached exactly are wrongly rejected."}]}],
+ tests:[[[2,3,1,1,4]],[[3,2,1,0,4]],[[0]],[[2,0,0]],[[1,0,1,0]],[[0,1]],[[2,3,0,1,4]],[[3,0,0,0]],[[2,0,3,0,0]]],
+ brute:function(t){var a=t[0],far=0;for(var i=0;i<a.length;i++){if(i>far)return false;far=Math.max(far,i+a[i])}return true},
+ run:function(sp,pk,inp){var a=inp[0],far=0,n=a.length;for(var i=0;i<n;i++){var bad=pk[1]==0?i>far:(i>=far&&i<n-1);if(bad)return {got:false,tr:['stuck at '+i]};far=pk[0]==0?Math.max(far,i+a[i]):i+a[i];if(far>=n-1)return {got:true,tr:['reach '+far]}}return {got:true,tr:[]}},
+ code:function(pk){return "int farthest = 0;\nfor (int i = 0; i < n; i++) {\n    if ("+(pk[1]==1?'i >= farthest && i < n - 1':(pk[1]<0?'/* ___ */':'i > farthest'))+") return false;\n    farthest = "+(pk[0]==1?'i + nums[i];':(pk[0]<0?'/* ___ */;':'max(farthest, i + nums[i]);'))+"\n    if (farthest >= n - 1) return true;\n}\nreturn true;"}});
+BL.dp.push({n:"Unique Paths",s:"Count the paths from the top-left to the bottom-right of a grid moving only right or down.",tn:"path counts",
+ roles:[{q:"A cell's count is…",o:[{t:"up + left"},{t:"diagonal + 1",w:"Only the diagonal is counted, so paths through the sides are lost."},{t:"up * left",w:"Multiplying gives far too few paths."}]}],
+ tests:[[3,7],[3,2],[1,1],[1,5],[7,3],[2,2]],
+ brute:function(t){var m=t[0],n=t[1],C=[];for(var i=0;i<=m+n;i++){C.push([])}var r=1;for(var k=0;k<m-1;k++){r=r*(n-1+k+1)/(k+1)}return Math.round(r)},
+ run:function(sp,pk,inp){var m=inp[0],n=inp[1],d=[];for(var r=0;r<m;r++){d.push([]);for(var c=0;c<n;c++){if(r==0||c==0){d[r].push(1);continue}var up=d[r-1][c],left=d[r][c-1];d[r].push([up+left,d[r-1][c-1]+1,up*left][pk[0]])}}return {got:d[m-1][n-1],tr:['corner '+d[m-1][n-1]]}},
+ code:function(pk){return "vector<vector<int>> dp(m, vector<int>(n, 1));\nfor (int r = 1; r < m; r++)\n    for (int c = 1; c < n; c++)\n        dp[r][c] = "+(pk[0]==1?'dp[r - 1][c - 1] + 1;':(pk[0]==2?'dp[r - 1][c] * dp[r][c - 1];':(pk[0]<0?'/* ___ */;':'dp[r - 1][c] + dp[r][c - 1];')))+"\nreturn dp[m - 1][n - 1];"}});
+BL.dp.push({n:"Combination Sum IV",s:"Count the ordered sequences of numbers that add up to a target.",tn:"ways to make each total",
+ roles:[{q:"Loop order: outer loop over…",o:[{t:"the total (so order matters)"},{t:"the numbers (counts unordered combinations)",w:"Orderings that differ only by position are counted once instead of separately."}]},
+ {q:"Each total adds…",o:[{t:"dp[total − x] for each number x ≤ total"},{t:"dp[x]",w:"That ignores how the rest of the total is formed."}]}],
+ tests:[[[1,2,3],4],[[9],3],[[1,2],3],[[3,1,2,4],4],[[2],4],[[1,2,3],0]],
+ brute:function(t){var nums=t[0],T=t[1],memo=[];function f(x){if(x==0)return 1;if(x<0)return 0;if(memo[x]!==undefined)return memo[x];var s=0;nums.forEach(function(v){s+=f(x-v)});memo[x]=s;return s}return f(T)},
+ run:function(sp,pk,inp){var nums=inp[0],T=inp[1],dp=[1];for(var i=1;i<=T;i++)dp.push(0);
+   function use(t,x){if(x<=t)dp[t]+=pk[1]==0?dp[t-x]:dp[x]}
+   if(pk[0]==0){for(var t=1;t<=T;t++)nums.forEach(function(x){use(t,x)})}
+   else{nums.forEach(function(x){for(var t=1;t<=T;t++)use(t,x)})}
+   return {got:dp[T],tr:['total '+T+' has '+dp[T]+' ways']}},
+ code:function(pk){return "vector<long long> dp(target + 1, 0);\ndp[0] = 1;\n"+(pk[0]==1?'for (int x : nums)\n    for (int t = 1; t <= target; t++)':'for (int t = 1; t <= target; t++)\n    for (int x : nums)')+"\n        if (x <= t) dp[t] += "+(pk[1]==1?'dp[x];':(pk[1]<0?'/* ___ */;':'dp[t - x];'))+"\nreturn dp[target];"}});
+BL.bit.push({n:"Number of 1 Bits",s:"Count the set bits in an integer.",tn:"bits counted",
+ roles:[{q:"Each step removes…",o:[{t:"the lowest set bit: n & (n − 1)"},{t:"the lowest bit only: n >> 1",w:"Shifting counts bit positions, not set bits, so the count is wrong."}]},
+ {q:"Repeat while…",o:[{t:"n != 0"},{t:"n != 1",w:"A number whose only set bit is the lowest one is never counted."}]}],
+ tests:[[11],[128],[0],[1],[255],[2147483645]],
+ brute:function(t){return bitsOf(t[0])},
+ run:function(sp,pk,inp){var n=inp[0],c=0,g=0;while((pk[1]==0?n!==0:n!==1)&&g++<64){n=pk[0]==0?n&(n-1):n>>>1;c++}if(pk[1]==1&&inp[0]==1)c=1;return {got:c,tr:['count '+c]}},
+ code:function(pk){return "int count = 0;\nwhile ("+(pk[1]==1?'n != 1':(pk[1]<0?'/* ___ */':'n != 0'))+") {\n    "+(pk[0]==1?'n >>= 1;':(pk[0]<0?'/* ___ */':'n &= (n - 1);   // clear lowest set bit'))+"\n    count++;\n}\nreturn count;"}});
+BL.bit.push({n:"Counting Bits",s:"For every number from 0 to n, count its set bits and return the array.",tn:"bit counts so far",
+ roles:[{q:"Count for i is the count for i >> 1 plus…",o:[{t:"i & 1 (its lowest bit)"},{t:"1 always",w:"Numbers with a 0 lowest bit get an extra 1."},{t:"the count for i − 1, plus 1",w:"Removing a set bit is not the same as stepping back one number."}]}],
+ tests:[[2],[5],[0],[1],[8],[16]],
+ brute:function(t){var o=[];for(var i=0;i<=t[0];i++)o.push(bitsOf(i));return JSON.stringify(o)},
+ run:function(sp,pk,inp){var n=inp[0],dp=[0];for(var i=1;i<=n;i++){dp.push([dp[i>>1]+(i&1),dp[i>>1]+1,dp[i-1]+1][pk[0]])}return {got:JSON.stringify(dp),tr:['counts '+dp.join(',')]}},
+ code:function(pk){return "vector<int> dp(n + 1, 0);\nfor (int i = 1; i <= n; i++)\n    dp[i] = "+(pk[0]==1?'dp[i >> 1] + 1;':(pk[0]==2?'dp[i - 1] + 1;':(pk[0]<0?'/* ___ */;':'dp[i >> 1] + (i & 1);')))+"\nreturn dp;"}});
+BL.bit.push({n:"Reverse Bits",s:"Reverse the bits of a 32-bit unsigned integer.",tn:"result so far",
+ roles:[{q:"Each step takes the bit from…",o:[{t:"the lowest position of n (n & 1)"},{t:"the highest position of n",w:"Bits are then taken from the wrong end, so the result is not reversed."}]},
+ {q:"After each step, n is…",o:[{t:"shifted right by 1 (n >>>= 1)"},{t:"left unchanged",w:"The same bit is read over and over."}]}],
+ tests:[[43261596],[4294967293],[0],[1],[2]],
+ brute:function(t){return parseInt(t[0].toString(2).padStart(32,'0').split('').reverse().join(''),2)},
+ run:function(sp,pk,inp){var n=inp[0]>>>0,res=0;for(var i=0;i<32;i++){var bit=pk[0]==0?n&1:(n>>>31)&1;res=(res*2+bit)>>>0;if(pk[1]==0)n=n>>>1}return {got:res>>>0,tr:['result '+(res>>>0)]}},
+ code:function(pk){return "uint32_t res = 0;\nfor (int i = 0; i < 32; i++) {\n    res = (res << 1) | "+(pk[0]==1?'(n >> 31);':(pk[0]<0?'/* ___ */;':'(n & 1);'))+"\n    "+(pk[1]==1?'/* n stays the same */':(pk[1]<0?'/* ___ */':'n >>= 1;'))+"\n}\nreturn res;"}});
+BL.bit.push({n:"Missing Number",s:"An array holds n distinct numbers from 0 to n; find the one missing.",tn:"running XOR",
+ roles:[{q:"XOR together…",o:[{t:"each index i and each value nums[i]"},{t:"only the values",w:"Indexes are needed to cancel the pairs; without them the answer is wrong."}]},
+ {q:"Start the running XOR at…",o:[{t:"n (the length)"},{t:"0",w:"The number n is never included, so a missing n is not found."}]}],
+ tests:[[[3,0,1]],[[0,1]],[[9,6,4,2,3,5,7,0,1]],[[0]],[[1]]],
+ brute:function(t){var a=t[0],n=a.length,s=n*(n+1)/2;a.forEach(function(x){s-=x});return s},
+ run:function(sp,pk,inp){var a=inp[0],n=a.length,r=pk[1]==0?n:0;for(var i=0;i<n;i++){r^=pk[0]==0?(i^a[i]):a[i]}return {got:r,tr:['xor '+r]}},
+ code:function(pk){return "int res = "+(pk[1]==1?'0;':(pk[1]<0?'/* ___ */;':'n;'))+"\nfor (int i = 0; i < n; i++)\n    res ^= "+(pk[0]==1?'nums[i];':(pk[0]<0?'/* ___ */;':'(i ^ nums[i]);'))+"\nreturn res;"}});
+BL.gr.push({n:"Best Time to Buy and Sell Stock",s:"Given daily prices, find the maximum profit from one buy followed by one later sell.",tn:"lowest price so far",
+ roles:[{q:"Track…",o:[{t:"the lowest price so far"},{t:"the highest price so far",w:"Selling before buying is counted as profit."}]},
+ {q:"Profit on each day is…",o:[{t:"price − lowest so far"},{t:"lowest so far − price",w:"That is negative when the price rises."}]}],
+ tests:[[[7,1,5,3,6,4]],[[7,6,4,3,1]],[[2,4,1]],[[1]],[[3,2,6,5,0,3]]],
+ brute:function(t){var a=t[0],b=0;for(var i=0;i<a.length;i++)for(var j=i+1;j<a.length;j++)b=Math.max(b,a[j]-a[i]);return b},
+ run:function(sp,pk,inp){var a=inp[0],lo=Infinity,hi=-Infinity,best=0;for(var i=0;i<a.length;i++){var p=a[i];if(pk[0]==0){best=Math.max(best,pk[1]==0?p-lo:lo-p);lo=Math.min(lo,p)}else{best=Math.max(best,pk[1]==0?p-lo:lo-p);hi=Math.max(hi,p)}}return {got:best,tr:['best profit '+best]}},
+ code:function(pk){return "int lo = prices[0], best = 0;\nfor (int p : prices) {\n    best = max(best, "+(pk[1]==1?'lo - p':(pk[1]<0?'/* ___ */':'p - lo'))+");\n    "+(pk[0]==1?'/* track the highest price instead */':(pk[0]<0?'/* ___ */':'lo = min(lo, p);'))+"\n}\nreturn best;"}});
+BL.gr.push({n:"Non-overlapping Intervals",s:"Find the minimum number of intervals to remove so the rest do not overlap.",tn:"intervals kept",
+ roles:[{q:"Sort the intervals by…",o:[{t:"end time"},{t:"start time",w:"A long early interval can block several shorter ones."}]},
+ {q:"Keep an interval if its start is…",o:[{t:"at or after the last kept end (touching is fine)"},{t:"strictly after the last kept end",w:"Touching intervals like [1,2] and [2,3] are wrongly removed."}]}],
+ tests:[[[[1,2],[2,3],[3,4],[1,3]]],[[[1,2],[1,2],[1,2]]],[[[1,2],[2,3]]],[[[0,2],[1,3],[2,4],[3,5],[4,6]]],[[]],[[[1,10],[2,3],[4,5]]]],
+ brute:function(t){var iv=t[0].slice().sort(function(a,b){return a[1]-b[1]}),last=-Infinity,keep=0;iv.forEach(function(x){if(x[0]>=last){keep++;last=x[1]}});return iv.length-keep},
+ run:function(sp,pk,inp){var iv=inp[0].map(function(x){return x.slice()});iv.sort(function(a,b){return pk[0]==0?a[1]-b[1]:a[0]-b[0]});var last=-Infinity,rm=0;iv.forEach(function(x){var ok=pk[1]==0?x[0]>=last:x[0]>last;if(ok)last=x[1];else rm++});return {got:rm,tr:['removed '+rm]}},
+ code:function(pk){return "sort(v.begin(), v.end(), [](auto& a, auto& b) { return "+(pk[0]==1?'a[0] < b[0]':(pk[0]<0?'/* ___ */':'a[1] < b[1]'))+"; });\nint last = INT_MIN, removed = 0;\nfor (auto& x : v) {\n    if ("+(pk[1]==1?'x[0] > last':(pk[1]<0?'/* ___ */':'x[0] >= last'))+") last = x[1];\n    else removed++;\n}\nreturn removed;"}});
+BL.gr.push({n:"Meeting Rooms",s:"Given meeting time intervals, decide whether one person can attend all of them without overlap.",tn:"previous meeting end",
+ roles:[{q:"Sort the meetings by…",o:[{t:"start time"},{t:"end time",w:"A meeting that starts early but ends late can slip past the check."}]},
+ {q:"Two meetings overlap when the next one starts…",o:[{t:"before the previous one ends"},{t:"before or at the end of the previous one",w:"Back-to-back meetings like [0,5] and [5,10] are wrongly rejected."}]}],
+ tests:[[[[0,30],[5,10],[15,20]]],[[[7,10],[2,4]]],[[[0,5],[5,10]]],[[]],[[[1,2]]],[[[0,10],[1,5]]]],
+ brute:function(t){var iv=t[0].slice().sort(function(a,b){return a[0]-b[0]});for(var i=1;i<iv.length;i++)if(iv[i][0]<iv[i-1][1])return false;return true},
+ run:function(sp,pk,inp){var iv=inp[0].map(function(x){return x.slice()});iv.sort(function(a,b){return pk[0]==0?a[0]-b[0]:a[1]-b[1]});for(var i=1;i<iv.length;i++){var bad=pk[1]==0?iv[i][0]<iv[i-1][1]:iv[i][0]<=iv[i-1][1];if(bad)return {got:false,tr:['overlap at '+i]}}return {got:true,tr:['no overlap']}},
+ code:function(pk){return "sort(v.begin(), v.end(), [](auto& a, auto& b) { return "+(pk[0]==1?'a[1] < b[1]':(pk[0]<0?'/* ___ */':'a[0] < b[0]'))+"; });\nfor (int i = 1; i < n; i++)\n    if (v[i][0] "+(pk[1]==1?'<=':(pk[1]<0?'/* ___ */':'<'))+" v[i - 1][1]) return false;\nreturn true;"}});
+BL.ll.push({n:"Reverse Linked List",s:"Reverse a singly linked list.",tn:"list being reversed",
+ roles:[{q:"Before changing a pointer, save…",o:[{t:"the old next node"},{t:"nothing",w:"The rest of the list is lost once the pointer changes."}]},
+ {q:"Point the current node at…",o:[{t:"prev"},{t:"the head",w:"Every node points at the head, so the list loops."}]},
+ {q:"Move to the next node by…",o:[{t:"using the saved next node"},{t:"reading cur->next after changing it",w:"That pointer already points backwards, so the walk goes back and forth."}]}],
+ tests:[[[1,2,3,4,5]],[[1,2]],[[]],[[1]]],
+ brute:function(t){return JSON.stringify(t[0].slice().reverse())},
+ run:function(sp,pk,inp){return guard(function(){var a=inp[0],head=null,cur=null;for(var i=a.length-1;i>=0;i--)head={v:a[i],next:head};var prev=null,c=head,g=0;while(c&&g++<200){var nxt=pk[0]==0?c.next:null;var old=c.next;c.next=pk[1]==0?prev:head;prev=c;c=pk[2]==0?nxt:(pk[0]==0?c.next:null)}var out=[],p=prev,h=0;while(p&&h++<200){out.push(p.v);p=p.next}if(g>=200)return {got:'timeout',tr:[]};return {got:JSON.stringify(out),tr:['reversed']}})},
+ code:function(pk){return "ListNode* prev = nullptr;\nListNode* cur = head;\nwhile (cur) {\n    "+(pk[0]==1?'/* nothing saved */':(pk[0]<0?'/* ___ */':'ListNode* nxt = cur->next;'))+"\n    cur->next = "+(pk[1]==1?'head;':(pk[1]<0?'/* ___ */;':'prev;'))+"\n    prev = cur;\n    cur = "+(pk[2]==1?'cur->next;':(pk[2]<0?'/* ___ */;':'nxt;'))+"\n}\nreturn prev;"}});
+BL.tree.push({n:"Invert Binary Tree",s:"Swap the left and right child of every node in a binary tree.",tn:"tree being inverted",
+ roles:[{q:"At each node, swap…",o:[{t:"its left and right children"},{t:"nothing (only the values change)",w:"The tree shape is not inverted, so the mirror image is wrong."}]},
+ {q:"Then recurse into…",o:[{t:"both children"},{t:"the left child only",w:"The right subtree is never inverted."}]}],
+ tests:[[[4,2,7,1,3,6,9]],[[2,1,3]],[[]],[[1,2]],[[1,null,2]]],
+ brute:function(t){function inv(n){if(!n)return null;return {v:n.v,l:inv(n.r),r:inv(n.l)}}return ser(inv(mkT(t[0])))},
+ run:function(sp,pk,inp){var root=mkT(inp[0]);function inv(n){if(!n)return;if(pk[0]==0){var t=n.l;n.l=n.r;n.r=t}if(pk[1]==0){inv(n.l);inv(n.r)}else inv(n.l)}inv(root);return {got:ser(root),tr:['inverted']}},
+ code:function(pk){return "void invert(TreeNode* node) {\n    if (!node) return;\n    "+(pk[0]==1?'/* values only */':(pk[0]<0?'/* ___ */':'swap(node->left, node->right);'))+"\n    "+(pk[1]==1?'invert(node->left);':(pk[1]<0?'/* ___ */':'invert(node->left);\n    invert(node->right);'))+"\n}"}});
+BL.tree.push({n:"Same Tree",s:"Check whether two binary trees are identical in structure and node values.",tn:"pairs being compared",
+ roles:[{q:"When both nodes are empty, return…",o:[{t:"true"},{t:"false",w:"Two empty trees are identical, so this is wrong."}]},
+ {q:"When one is empty or the values differ, return…",o:[{t:"false"},{t:"true",w:"Different trees would be reported as the same."}]},
+ {q:"Otherwise, check…",o:[{t:"both the left and right subtrees"},{t:"the left subtree only",w:"The right subtree is never compared."}]}],
+ tests:[[[1,2,3],[1,2,3]],[[1,2],[1,null,2]],[[1,2,1],[1,1,2]],[[],[]],[[1,2,3,4],[1,2,3,null,4]],[[1],[2]],[[1,2,3],[1,2,4]]],
+ brute:function(t){return sameTree(mkT(t[0]),mkT(t[1]),[0,0,0])},
+ run:function(sp,pk,inp){return {got:sameTree(mkT(inp[0]),mkT(inp[1]),pk),tr:['compared']}},
+ code:function(pk){return "bool same(TreeNode* a, TreeNode* b) {\n    if (!a && !b) return "+(pk[0]==1?'false':(pk[0]<0?'/* ___ */':'true'))+";\n    if (!a || !b || a->val != b->val) return "+(pk[1]==1?'true':(pk[1]<0?'/* ___ */':'false'))+";\n    return "+(pk[2]==1?'same(a->left, b->left);':(pk[2]<0?'/* ___ */;':'same(a->left, b->left) && same(a->right, b->right);'))+"\n}"}});
+BL.tree.push({n:"Subtree of Another Tree",s:"Check whether one binary tree is a subtree of another.",tn:"positions checked",
+ roles:[{q:"At each node of the main tree, check…",o:[{t:"whether the tree from that node is the same as the subtree"},{t:"only whether the values match",w:"Matching root values alone does not make a subtree."}]},
+ {q:"Return true if…",o:[{t:"any node passes the check"},{t:"the root passes the check only",w:"The subtree can sit anywhere, not only at the root."}]}],
+ tests:[[[3,4,5,1,2],[4,1,2]],[[3,4,5,1,2,null,null,null,null,0],[4,1,2]],[[1,1],[1]],[[1,2,3],[2]],[[1],[1,2]]],
+ brute:function(t){var m=mkT(t[0]),s=mkT(t[1]),ok=false;(function w(n){if(!n||ok)return;if(sameTree(n,s,[0,0,0]))ok=true;w(n.l);w(n.r)})(m);return ok},
+ run:function(sp,pk,inp){var m=mkT(inp[0]),s=mkT(inp[1]),ok=false;(function w(n){if(!n||ok)return;var hit=pk[0]==0?sameTree(n,s,[0,0,0]):n.v===s.v;if(pk[1]==1)hit=hit&&n===m;if(hit)ok=true;w(n.l);w(n.r)})(m);return {got:ok,tr:['searched']}},
+ code:function(pk){return "bool search(TreeNode* node) {\n    if (!node) return false;\n    if ("+(pk[0]==1?'node->val == sub->val':(pk[0]<0?'/* ___ */':'same(node, sub)'))+") return true;\n    return search(node->left) || search(node->right);\n}\nreturn "+(pk[1]==1?'node == root && same(node, sub);':(pk[1]<0?'/* ___ */;':'search(root);'))}});
+BL.ll.push({n:"Linked List Cycle",s:"Detect whether a linked list loops back on itself using O(1) memory.",tn:"slow and fast pointers",
+ roles:[{q:"The fast pointer moves…",o:[{t:"two nodes per step"},{t:"one node per step",w:"Slow and fast move together, so they never meet."}]},
+ {q:"A cycle is found when…",o:[{t:"slow and fast point to the same node"},{t:"fast reaches the end of the list",w:"A list with no cycle also reaches the end, so it is reported as a cycle."}]}],
+ tests:[[[3,2,0,-4],1],[[1,2],0],[[1],-1],[[1,2],-1],[[1,2,3],2]],
+ brute:function(t){var h=mkCycle(t[0],t[1]),seen=new Set();while(h){if(seen.has(h))return true;seen.add(h);h=h.next}return false},
+ run:function(sp,pk,inp){var h=mkCycle(inp[0],inp[1]),slow=h,fast=h,g=0;while(fast&&fast.next&&g++<200){slow=slow.next;fast=pk[0]==0?fast.next.next:fast.next;if(pk[1]==1&&!fast)return {got:true,tr:['fast ended']};if(slow===fast)return {got:true,tr:['met']}}return {got:false,tr:['no meeting']}},
+ code:function(pk){return "ListNode *slow = head, *fast = head;\nwhile (fast && fast->next) {\n    slow = slow->next;\n    fast = "+(pk[0]==1?'fast->next;':(pk[0]<0?'/* ___ */;':'fast->next->next;'))+"\n    if ("+(pk[1]==1?'!fast':(pk[1]<0?'/* ___ */':'slow == fast'))+") return true;\n}\nreturn false;"}});
+// Final batch: the remaining problems. Each builder is judged by brute force on fixed tests.
+function grpNorm(g){return JSON.stringify(g.map(function(x){return x.slice().sort()}).sort(function(a,b){return JSON.stringify(a)<JSON.stringify(b)?-1:1}))}
+function gcdKey(w){return w.split('').sort().join('')}
+function rob1(a){var p2=0,p1=0;a.forEach(function(x){var c=Math.max(p1,p2+x);p2=p1;p1=c});return p1}
+function isPal(s){return s===s.split('').reverse().join('')}
+function centers(s,oddOnly){var out=[];for(var i=0;i<s.length;i++){out.push([i,i]);if(!oddOnly&&i+1<s.length)out.push([i,i+1])}return out}
+function expandAll(s,c){var l=c[0],r=c[1],hits=[];while(l>=0&&r<s.length&&s[l]===s[r]){hits.push([l,r]);l--;r++}return hits}
+function trieNode(){return {ch:{},end:false}}
+function altOrder(words){var letters=[],seen={};words.forEach(function(w){w.split('').forEach(function(c){if(!seen[c]){seen[c]=1;letters.push(c)}})});return letters}
+function alienFeasible(words){var letters=altOrder(words),adj={},indeg={};letters.forEach(function(c){adj[c]=[];indeg[c]=0});
+  for(var i=0;i+1<words.length;i++){var a=words[i],b=words[i+1],k=0;while(k<a.length&&k<b.length&&a[k]===b[k])k++;
+    if(k==a.length||k==b.length){if(a.length>b.length)return false;continue}
+    adj[a[k]].push(b[k]);indeg[b[k]]++}
+  var q=letters.filter(function(c){return indeg[c]==0}),out=[];while(q.length){var c=q.shift();out.push(c);adj[c].forEach(function(d){if(--indeg[d]==0)q.push(d)})}
+  return out.length==letters.length}
+function alienVerify(order,words){var pos={};order.forEach(function(c,i){pos[c]=i});
+  for(var i=0;i+1<words.length;i++){var a=words[i],b=words[i+1],k=0;while(k<a.length&&k<b.length&&a[k]===b[k])k++;
+    if(k==a.length||k==b.length){if(a.length>b.length)return false;continue}if(pos[a[k]]>pos[b[k]])return false}return true}
+function runAlien(sp,pk,inp){var words=inp[0],letters=altOrder(words),adj={},indeg={},bad=false;letters.forEach(function(c){adj[c]=[];indeg[c]=0});
+  for(var i=0;i+1<words.length;i++){var a=words[i],b=words[i+1],k=0;while(k<a.length&&k<b.length&&a[k]===b[k])k++;
+    if(k==a.length||k==b.length){if(a.length>b.length)bad=true;continue}
+    var u=pk[0]==0?a[k]:b[k],v=pk[0]==0?b[k]:a[k];adj[u].push(v);indeg[v]++}
+  if(bad)return {got:'none',tr:['prefix rule broken']};
+  var order=[];if(pk[1]==1)order=letters.slice().sort();else{var q=letters.filter(function(c){return indeg[c]==0});while(q.length){var c=q.shift();order.push(c);adj[c].forEach(function(d){if(--indeg[d]==0)q.push(d)})}}
+  if(order.length<letters.length)return {got:'none',tr:['cycle']};
+  return {got:alienVerify(order,words)?'ok':'bad',tr:['order '+order.join('')]}}
+function runWordII(sp,pk,inp){var board=inp[0].map(function(r){return r.slice()}),words=inp[1],R=board.length,C=R?board[0].length:0,found={};
+  function build(ws){var root=trieNode();ws.forEach(function(w){var n=root;w.split('').forEach(function(c){n.ch[c]=n.ch[c]||trieNode();n=n.ch[c]});n.end=w});return root}
+  function dfs(r,c,node){var ch=board[r][c];if(!node.ch[ch])return;var nxt=node.ch[ch];
+    if(nxt.end!==false){found[nxt.end]=1;nxt.end=false}
+    var saved=ch;board[r][c]='#';
+    [[1,0],[-1,0],[0,1],[0,-1]].forEach(function(d){var nr=r+d[0],nc=c+d[1];if(nr>=0&&nc>=0&&nr<R&&nc<C&&board[nr][nc]!=='#')dfs(nr,nc,nxt)});
+    if(pk[1]==0)board[r][c]=saved}
+  if(pk[0]==0){var root=build(words);for(var r=0;r<R;r++)for(var c=0;c<C;c++)dfs(r,c,root)}
+  else{words.forEach(function(w){var root=build([w]);for(var r=0;r<R;r++)for(var c=0;c<C;c++)dfs(r,c,root);board=inp[0].map(function(x){return x.slice()})})}
+  var out=Object.keys(found).sort();return {got:JSON.stringify(out),tr:['found '+out.join(', ')]}}
+function runDesign(sp,pk,inp){var root=trieNode();inp[0].forEach(function(w){var n=root;w.split('').forEach(function(c){n.ch[c]=n.ch[c]||trieNode();n=n.ch[c]});if(pk[1]==0)n.end=true});
+  function find(n,w,i){if(i==w.length)return n.end===true;var c=w[i];if(c==='.'&&pk[0]==0){return Object.keys(n.ch).some(function(k){return find(n.ch[k],w,i+1)})}
+    if(!n.ch[c])return false;return find(n.ch[c],w,i+1)}
+  return {got:JSON.stringify(inp[1].map(function(q){return find(root,q,0)})),tr:['queries checked']}}
+function runMedian(sp,pk,inp){var low=[],high=[],out=[];
+  function ins(a,x){var i=0;while(i<a.length&&a[i]<x)i++;a.splice(i,0,x)}
+  inp[0].forEach(function(x){
+    var top=low.length?low[low.length-1]:null,htop=high.length?high[0]:null;
+    var toLow=top===null||(pk[0]==0?x<=top:(htop!==null?x<=htop:x<=top));
+    if(toLow)ins(low,x);else ins(high,x);
+    if(low.length>high.length+1)high.unshift(low.pop());
+    if(pk[1]==0&&high.length>low.length)low.push(high.shift());
+    var m=low.length>high.length?low[low.length-1]:(high.length?(low[low.length-1]+high[0])/2:low[low.length-1]);
+    out.push(m)});
+  return {got:JSON.stringify(out),tr:['medians '+out.join(' ')]}}
+function runMaxPath(sp,pk,inp){var best=-Infinity;
+  function g(n){if(!n)return 0;var L=g(n.l),R=g(n.r),l=Math.max(0,L),r=Math.max(0,R);
+    var through=pk[1]==0?n.v+l+r:n.v+L+R;best=Math.max(best,through);return pk[0]==0?n.v+Math.max(l,r):n.v+l+r}
+  g(mkT(inp[0]));return {got:best,tr:['best path '+best]}}
+function runSerial(sp,pk,inp){var root=mkT(inp[0]);
+  function enc(n){if(!n)return pk[0]==0?'#':null;return n.v+','+enc(n.l)+','+enc(n.r)}
+  var s=pk[0]==0?enc(root):'';
+  if(pk[0]==1){var vals=[];(function w(n){if(!n)return;vals.push(n.v);w(n.l);w(n.r)})(root);s=vals.join(',')}
+  var toks=s===''?[]:s.split(','),idx=0;if(pk[1]==1)toks=toks.slice().reverse();
+  function dec(){if(idx>=toks.length)return null;var t=toks[idx++];if(t==='#'||t==='')return null;var n={v:+t,l:null,r:null};n.l=dec();n.r=dec();return n}
+  var back=dec();return {got:ser(back),tr:['rebuilt '+ser(back)]}}
+function ser(n){return n?n.v+'('+ser(n.l)+')('+ser(n.r)+')':'#'}
+function runSpiral(sp,pk,inp){var m=inp[0],R=m.length,C=R?m[0].length:0,out=[],seen={},dirs=pk[0]==0?[[0,1],[1,0],[0,-1],[-1,0]]:[[1,0],[0,1],[-1,0],[0,-1]],r=0,c=0,d=0;
+  for(var k=0;k<R*C;k++){out.push(m[r][c]);seen[r+','+c]=1;var nr=r+dirs[d][0],nc=c+dirs[d][1];
+    if(nr<0||nc<0||nr>=R||nc>=C||seen[nr+','+nc]){if(pk[1]==1)break;d=(d+1)%4;nr=r+dirs[d][0];nc=c+dirs[d][1]}
+    r=nr;c=nc}
+  return {got:JSON.stringify(out),tr:['walked '+out.length+' cells']}}
+function runZeroes(sp,pk,inp){var m=inp[0].map(function(r){return r.slice()}),R=m.length,C=m[0].length;
+  if(pk[0]==0){var rows={},cols={};for(var r=0;r<R;r++)for(var c=0;c<C;c++)if(inp[0][r][c]===0){rows[r]=1;cols[c]=1}
+    for(r=0;r<R;r++)for(c=0;c<C;c++)if(rows[r]||(pk[1]==0&&cols[c]))m[r][c]=0}
+  else{for(r=0;r<R;r++)for(c=0;c<C;c++)if(m[r][c]===0){for(var k=0;k<C;k++)m[r][k]=0;for(k=0;k<R;k++)m[k][c]=0}}
+  return {got:JSON.stringify(m),tr:['zeroed']}}
+function runMergeK(sp,pk,inp){var lists=inp[0].map(function(a){return a.slice()}),idx=lists.map(function(){return 0}),out=[],guardN=0,total=lists.reduce(function(s,a){return s+a.length},0);
+  while(out.length<total&&guardN++<total*4+10){var pick=-1;
+    for(var i=0;i<lists.length;i++){if(idx[i]>=lists[i].length)continue;if(pick<0){pick=i;if(pk[0]==1)break;continue}if(lists[i][idx[i]]<lists[pick][idx[pick]])pick=i}
+    if(pick<0)break;out.push(lists[pick][idx[pick]]);if(pk[1]==0)idx[pick]++;else{idx[pick]++;if(idx[pick]<lists[pick].length)idx[pick]=idx[pick]}}
+  return {got:JSON.stringify(out),tr:['merged '+out.join(',')]}}
+function runMerge2(sp,pk,inp){var a=inp[0],b=inp[1],i=0,j=0,out=[];
+  while(i<a.length&&j<b.length){if(pk[0]==1||a[i]<=b[j])out.push(a[i++]);else out.push(b[j++])}
+  if(pk[1]==0){while(i<a.length)out.push(a[i++]);while(j<b.length)out.push(b[j++])}
+  return {got:JSON.stringify(out),tr:['merged']}}
+function runInsert(sp,pk,inp){var iv=inp[0].map(function(x){return x.slice()}),ns=inp[1].slice(),out=[],i=0,n=iv.length;
+  while(i<n&&iv[i][1]<ns[0]){if(pk[0]==1)ns=[Math.min(ns[0],iv[i][0]),Math.max(ns[1],iv[i][1])];else out.push(iv[i].slice());i++}
+  while(i<n&&iv[i][0]<=ns[1]){if(pk[1]==0)ns=[Math.min(ns[0],iv[i][0]),Math.max(ns[1],iv[i][1])];i++}
+  out.push(ns);while(i<n){out.push(iv[i].slice());i++}
+  return {got:JSON.stringify(out),tr:['inserted']}}
+function runDecode(sp,pk,inp){var s=inp[0],n=s.length,dp=[],one=function(c){return pk[0]==1?true:c!=='0'},two=function(v){return pk[1]==1?(v>=10&&v<=99):(v>=10&&v<=26)};
+  dp[0]=1;dp[1]=one(s[0])?1:0;for(var i=2;i<=n;i++){dp[i]=(one(s[i-1])?dp[i-1]:0)+(two(+s.slice(i-2,i))?dp[i-2]:0)}
+  if(n==0)return {got:0,tr:['empty']};return {got:dp[n],tr:['ways '+dp[n]]}}
+function runWordBreak(sp,pk,inp){var s=inp[0],set={};inp[1].forEach(function(w){set[w]=1});var n=s.length,dp=[pk[1]==0];
+  for(var i=1;i<=n;i++){dp[i]=false;for(var j=0;j<i;j++){if((pk[0]==0?dp[j]:true)&&set[s.slice(j,i)]){dp[i]=true;break}}}
+  return {got:dp[n],tr:['can split: '+dp[n]]}}
+function runLIS(sp,pk,inp){var a=inp[0],dp=[];for(var i=0;i<a.length;i++){dp[i]=1;for(var j=0;j<i;j++){if(pk[0]==0?a[j]<a[i]:a[j]>a[i])dp[i]=Math.max(dp[i],dp[j]+1)}}
+  var got=pk[1]==0?Math.max.apply(null,[0].concat(dp)):(dp.length?dp[dp.length-1]:0);return {got:got,tr:['best '+got]}}
+function runCount(sp,pk,inp){var s=inp[0],cnt=0;centers(s,pk[0]==1).forEach(function(c){var h=expandAll(s,c);cnt+=pk[1]==0?h.length:(h.length?1:0)});return {got:cnt,tr:['count '+cnt]}}
+function runLongPal(sp,pk,inp){var s=inp[0],best='',cs=centers(s,pk[0]==1);cs.forEach(function(c){var h=expandAll(s,c);if(!h.length)return;var last=h[h.length-1],sub=s.slice(last[0],last[1]+1);if(pk[1]==0){if(sub.length>best.length)best=sub}else best=sub});
+  return {got:best,tr:['longest '+best]}}
+function runHR2(sp,pk,inp){var a=inp[0],n=a.length;if(!n)return {got:0,tr:['none']};if(pk[0]==1)return {got:rob1(a),tr:['linear']};if(n==1)return {got:a[0],tr:['one house']};return {got:Math.max(rob1(a.slice(0,n-1)),rob1(a.slice(1))),tr:['two passes']}}
+// Builder definitions for the final batch (engines are in b10.js; these override the two that changed).
+function robF(a,flag){var p2=0,p1=0;a.forEach(function(x){var c=flag==0?Math.max(p1,p2+x):p1+x;p2=p1;p1=c});return p1}
+function runHR2(sp,pk,inp){var a=inp[0],n=a.length;if(!n)return {got:0,tr:['no houses']};if(pk[0]==1)return {got:robF(a,pk[1]),tr:['one line']};if(n==1)return {got:a[0],tr:['one house']};return {got:Math.max(robF(a.slice(0,n-1),pk[1]),robF(a.slice(1),pk[1])),tr:['two passes']}}
+function runMergeK(sp,pk,inp){var lists=inp[0].map(function(a){return a.slice()}),idx=lists.map(function(){return 0}),out=[],total=lists.reduce(function(s,a){return s+a.length},0),g=0;
+  while(out.length<total&&g++<total*3+5){var pick=-1;
+    for(var i=0;i<lists.length;i++){if(idx[i]>=lists[i].length)continue;if(pick<0){pick=i;if(pk[0]==1)break;continue}if(lists[i][idx[i]]<lists[pick][idx[pick]])pick=i}
+    if(pick<0)break;out.push(lists[pick][idx[pick]]);if(pk[1]==0)idx[pick]++}
+  return {got:JSON.stringify(out),tr:['merged '+out.join(',')]}}
+function groupBy(words,pk){var m={},order=[];words.forEach(function(w){if(pk[1]==1){order.push([w]);return}var k=pk[0]==0?gcdKey(w):w[0];if(!m[k]){m[k]=[];order.push(m[k])}m[k].push(w)});return order}
+BL.hash.push({n:"Group Anagrams",s:"Group strings that are rearrangements of each other.",tn:"groups so far",
+ roles:[{q:"The key for each word is…",o:[{t:"its letters sorted"},{t:"its first letter",w:"Words with different letters but the same first letter are grouped together."}]},
+ {q:"Each word goes into…",o:[{t:"the group with the same key"},{t:"its own new group",w:"Anagrams are never grouped."}]}],
+ tests:[[["eat","tea","tan","ate","nat","bat"]],[[""]],[["a"]],[["ab","ba","abc"]],[["abc","bca","cab","xyz"]]],
+ brute:function(t){var m={};t[0].forEach(function(w){var k=gcdKey(w);(m[k]=m[k]||[]).push(w)});return grpNorm(Object.keys(m).map(function(k){return m[k]}))},
+ run:function(sp,pk,inp){return {got:grpNorm(groupBy(inp[0],pk)),tr:['groups formed']}},
+ code:function(pk){return "unordered_map<string, vector<string>> groups;\nfor (string w : strs) {\n    string key = "+(pk[0]==1?'string(1, w[0]);   // first letter':(pk[0]<0?'/* ___ */;':'sorted(w);   // letters sorted'))+"\n    "+(pk[1]==1?'groups[w].push_back(w);   // own group':(pk[1]<0?'/* ___ */':'groups[key].push_back(w);'))+"\n}\nreturn values(groups);"}});
+BL.hash.push({n:"Valid Anagram",s:"Check whether one string is a rearrangement of another.",tn:"letter counts",
+ roles:[{q:"First check…",o:[{t:"that both strings have the same letter counts"},{t:"only that the lengths match",w:"Strings of the same length with different letters are accepted."}]},
+ {q:"Count letters: add 1 for each letter of s, and…",o:[{t:"subtract 1 for each letter of t"},{t:"nothing for t (only s is counted)",w:"Nothing cancels out, so only empty strings are accepted."}]}],
+ tests:[["anagram","nagaram"],["rat","car"],["a","ab"],["ab","ba"],["aab","abb"],["",""]],
+ brute:function(t){return t[0].split('').sort().join('')===t[1].split('').sort().join('')},
+ run:function(sp,pk,inp){var s=inp[0],t=inp[1];if(pk[0]==1)return {got:s.length===t.length,tr:['lengths']};var c={};s.split('').forEach(function(x){c[x]=(c[x]||0)+1});if(pk[1]==0)t.split('').forEach(function(x){c[x]=(c[x]||0)-1});return {got:Object.keys(c).every(function(k){return c[k]===0}),tr:['counts balanced']}},
+ code:function(pk){return "if (s.size() != t.size()) return false;\n"+(pk[0]==1?'// lengths only: letters are not compared\nreturn true;':"unordered_map<char, int> cnt;\nfor (char c : s) cnt[c]++;\nfor (char c : t) "+(pk[1]==1?'/* only s is counted */':(pk[1]<0?'/* ___ */':'cnt[c]--;'))+"\nfor (auto& [k, v] : cnt) if (v != 0) return false;\nreturn true;")}});
+BL.hash.push({n:"Longest Consecutive Sequence",s:"Find the length of the longest run of consecutive integers in an unsorted array, in O(n).",tn:"longest run so far",
+ roles:[{q:"Start counting from x when…",o:[{t:"x - 1 is not in the set"},{t:"every number (correct, but repeats work)"},{t:"x + 1 is not in the set",w:"Runs are counted from their top end, so the length is too short."}]},
+ {q:"Count the run by moving…",o:[{t:"up: x + 1, x + 2, …"},{t:"down: x − 1, x − 2, …",w:"Counting down from a run start never finds any numbers."}]}],
+ tests:[[[100,4,200,1,3,2]],[[0,3,7,2,5,8,4,6,0,1]],[[]],[[1]],[[9,1,4,7,3,-1,0,5,8,-1,6]],[[1,2,0,1]]],
+ brute:function(t){var s=new Set(t[0]),best=0;s.forEach(function(x){if(!s.has(x-1)){var c=1;while(s.has(x+c))c++;best=Math.max(best,c)}});return best},
+ run:function(sp,pk,inp){var a=inp[0],s=new Set(a),best=0;s.forEach(function(x){var start=pk[0]==0?!s.has(x-1):pk[0]==1?true:!s.has(x+1);if(!start)return;var c=1,k=1;while(s.has(pk[1]==0?x+k:x-k)){c++;k++}best=Math.max(best,c)});return {got:best,tr:['longest '+best]}},
+ code:function(pk){return "unordered_set<int> s(nums.begin(), nums.end());\nint best = 0;\nfor (int x : s) {\n    if ("+(pk[0]==2?'!s.count(x + 1)':(pk[0]==1?'true':(pk[0]<0?'/* ___ */':'!s.count(x - 1)')))+") {\n        int c = 1;\n        while (s.count("+(pk[1]==1?'x - c':(pk[1]<0?'/* ___ */':'x + c'))+")) c++;\n        best = max(best, c);\n    }\n}\nreturn best;"}});
+BL.arr.push({n:"Encode and Decode Strings",s:"Design encode and decode so a list of strings survives being sent as one string, even if the strings contain any character.",tn:"encoded string",
+ roles:[{q:"Encode each string as…",o:[{t:"its length, a #, then the string"},{t:"the string followed by a comma",w:"A comma inside a string is read as a separator."}]},
+ {q:"Decode by…",o:[{t:"reading the length, then that many characters"},{t:"splitting on commas",w:"Strings containing commas are broken apart."}]}],
+ tests:[[["lint","code","love","you"]],[["we","say",":","yes"]],[[""]],[["a,b","c"]],[[]]],
+ brute:function(t){return JSON.stringify(t[0])},
+ run:function(sp,pk,inp){var strs=inp[0];var enc=pk[0]==0?strs.map(function(s){return s.length+'#'+s}).join(''):strs.join(',');
+   var out=[];if(pk[1]==0){var i=0;while(i<enc.length){var j=enc.indexOf('#',i),len=parseInt(enc.slice(i,j),10);out.push(enc.slice(j+1,j+1+len));i=j+1+len}}else{out=enc===''?[]:enc.split(',')}
+   return {got:JSON.stringify(out),tr:['encoded: '+enc]}},
+ code:function(pk){return pk[0]==1?"string encode(vector<string>& strs) {\n    string s;\n    for (auto& w : strs) s += w + \",\";   // commas inside words break decoding\n    return s;\n}":"string encode(vector<string>& strs) {\n    string s;\n    for (auto& w : strs) s += to_string(w.size()) + '#' + w;\n    return s;\n}\nvector<string> decode(string s) {\n    vector<string> out;\n    size_t i = 0;\n    while (i < s.size()) {\n        size_t j = s.find('#', i);\n        int len = stoi(s.substr(i, j - i));\n        "+(pk[1]==1?'out.push_back(...);   // split on commas instead':'out.push_back(s.substr(j + 1, len));')+"\n        i = j + 1 + len;\n    }\n    return out;\n}"}});
+BL.dp.push({n:"House Robber II",s:"Houses are arranged in a circle; maximize money without robbing two adjacent houses.",tn:"best money so far",
+ roles:[{q:"Because the first and last houses are adjacent, solve…",o:[{t:"houses 0..n-2 and houses 1..n-1 separately, then take the max"},{t:"all houses as one line",w:"The first and last house can both be robbed."}]},
+ {q:"Each house: best = max(previous best, best two houses back + money)…",o:[{t:"max(prev1, prev2 + x)"},{t:"prev1 + x",w:"Adjacent houses can be robbed together."}]}],
+ tests:[[[2,3,2]],[[1,2,3,1]],[[1,2,3]],[[0]],[[5]],[[]],[[2,7,9,3,1]]],
+ brute:function(t){var a=t[0],n=a.length;if(!n)return 0;if(n==1)return a[0];function lin(b){var p2=0,p1=0;b.forEach(function(x){var c=Math.max(p1,p2+x);p2=p1;p1=c});return p1}return Math.max(lin(a.slice(0,n-1)),lin(a.slice(1)))},
+ run:runHR2,
+ code:function(pk){return "int rob(vector<int>& a) {\n    int prev2 = 0, prev1 = 0;\n    for (int x : a) {\n        int cur = "+(pk[1]==1?'prev1 + x;':(pk[1]<0?'/* ___ */;':'max(prev1, prev2 + x);'))+"\n        prev2 = prev1;\n        prev1 = cur;\n    }\n    return prev1;\n}\n"+(pk[0]==1?'return rob(nums);   // ignores the circle':(pk[0]<0?'/* ___ */':'return max(rob(first n-1 houses), rob(houses 1..n-1));'))}});
+BL.dp.push({n:"Longest Palindromic Substring",s:"Return the longest palindromic substring of a string.",tn:"expansion around each center",
+ roles:[{q:"Expand around…",o:[{t:"every odd and even center"},{t:"odd centers only",w:"Palindromes of even length (like \"bb\") are missed."}]},
+ {q:"Keep the answer as…",o:[{t:"the longest palindrome seen so far"},{t:"the last palindrome found",w:"A short palindrome found later replaces the longest one."}]}],
+ tests:[["cbbd"],["forgeeksskeegfor"],["abcdcbaxy"],["aaaa"],["a"]],
+ brute:function(t){var s=t[0],best='';for(var i=0;i<s.length;i++)for(var j=i+1;j<=s.length;j++){var sub=s.slice(i,j);if(sub.length>best.length&&isPal(sub))best=sub}return best},
+ run:runLongPal,
+ code:function(pk){return "string best = \"\";\nfor (int c = 0; c < n; c++) {\n    for (auto [l, r] : "+(pk[0]==1?'{odd center only}':'{odd and even centers}')+") {\n        while (l >= 0 && r < n && s[l] == s[r]) { l--; r++; }\n        string sub = s.substr(l + 1, r - l - 1);\n        if ("+(pk[1]==1?'true':'sub.size() > best.size()')+") best = sub;\n    }\n}\nreturn best;"}});
+BL.dp.push({n:"Palindromic Substrings",s:"Count how many substrings of a string are palindromes.",tn:"palindromes counted",
+ roles:[{q:"Expand around…",o:[{t:"every odd and even center"},{t:"odd centers only",w:"Palindromes of even length are not counted."}]},
+ {q:"Each center adds…",o:[{t:"one for every successful expansion"},{t:"one for the center",w:"Longer palindromes around the same center are not counted."}]}],
+ tests:[["abc"],["aaa"],["aba"],["a"],["xyzzyx"],["aabb"]],
+ brute:function(t){var s=t[0],n=0;for(var i=0;i<s.length;i++)for(var j=i+1;j<=s.length;j++)if(isPal(s.slice(i,j)))n++;return n},
+ run:runCount,
+ code:function(pk){return "int count = 0;\nfor (int c = 0; c < n; c++) {\n    for (auto [l, r] : "+(pk[0]==1?'{odd center only}':'{odd and even centers}')+") {\n        while (l >= 0 && r < n && s[l] == s[r]) {\n            "+(pk[1]==1?'count++; break;   // one per center':'count++;')+"\n            l--; r++;\n        }\n    }\n}\nreturn count;"}});
+BL.dp.push({n:"Decode Ways",s:"Count the ways to decode a digit string where 1 to 26 map to letters A to Z.",tn:"ways so far",
+ roles:[{q:"A single digit is valid when it is…",o:[{t:"1 to 9 (not 0)"},{t:"any digit",w:"A 0 on its own would be counted as a letter."}]},
+ {q:"A two-digit number is valid when it is…",o:[{t:"10 to 26"},{t:"10 to 99",w:"Numbers above 26 do not map to a letter."}]}],
+ tests:[["12"],["226"],["06"],["10"],["27"],["0"],["2101"],["11106"]],
+ brute:function(t){var s=t[0];function f(i){if(i==s.length)return 1;if(s[i]==='0')return 0;var r=f(i+1);if(i+1<s.length&&+s.slice(i,i+2)<=26)r+=f(i+2);return r}return s.length?f(0):0},
+ run:runDecode,
+ code:function(pk){return "vector<int> dp(n + 1, 0);\ndp[0] = 1;\nfor (int i = 1; i <= n; i++) {\n    if ("+(pk[0]==1?'true':(pk[0]<0?'/* ___ */':"s[i - 1] != '0'"))+") dp[i] += dp[i - 1];\n    int two = stoi(s.substr(i - 2, 2));\n    if (i >= 2 && "+(pk[1]==1?'two >= 10 && two <= 99':(pk[1]<0?'/* ___ */':'two >= 10 && two <= 26'))+") dp[i] += dp[i - 2];\n}\nreturn dp[n];"}});
+BL.dp.push({n:"Word Break",s:"Decide whether a string can be split into words from a dictionary.",tn:"which prefixes can be split",
+ roles:[{q:"Position i can be reached if some j < i has…",o:[{t:"dp[j] true and s[j..i) in the dictionary"},{t:"s[j..i) in the dictionary alone",w:"Pieces that cannot be reached from the start are accepted."}]},
+ {q:"The empty prefix (dp[0]) is…",o:[{t:"true"},{t:"false",w:"Nothing can be reached at all."}]}],
+ tests:[["leetcode",["leet","code"]],["applepenapple",["apple","pen"]],["catsandog",["cats","dog","sand","and","cat"]],["a",["b"]],["",[]]],
+ brute:function(t){var s=t[0],set={};t[1].forEach(function(w){set[w]=1});var dp=[true];for(var i=1;i<=s.length;i++){dp[i]=false;for(var j=0;j<i;j++)if(dp[j]&&set[s.slice(j,i)]){dp[i]=true;break}}return dp[s.length]},
+ run:runWordBreak,
+ code:function(pk){return "vector<bool> dp(n + 1, false);\ndp[0] = "+(pk[1]==1?'false;':(pk[1]<0?'/* ___ */;':'true;'))+"\nfor (int i = 1; i <= n; i++)\n    for (int j = 0; j < i; j++)\n        if ("+(pk[0]==1?'dict.count(s.substr(j, i - j))':(pk[0]<0?'/* ___ */':'dp[j] && dict.count(s.substr(j, i - j))'))+") { dp[i] = true; break; }\nreturn dp[n];"}});
+BL.dp.push({n:"Longest Increasing Subsequence",s:"Find the length of the longest strictly increasing subsequence.",tn:"best length ending at each index",
+ roles:[{q:"dp[i] = 1 + max dp[j] over earlier j where nums[j] is…",o:[{t:"smaller than nums[i]"},{t:"larger than nums[i]",w:"That finds decreasing subsequences."}]},
+ {q:"The answer is…",o:[{t:"the largest dp value"},{t:"the value at the last index",w:"The longest subsequence can end anywhere."}]}],
+ tests:[[[10,9,2,5,3,7,101,18]],[[0,1,0,3,2,3]],[[7,7,7]],[[1]],[[4,10,4,3,8,9]],[[3,5,6,2,5,4,19,5,6,7,12]],[[11,-5,-5,7,11,3,-5]],[[1,2,3,0]]],
+ brute:function(t){var a=t[0],dp=[],b=0;for(var i=0;i<a.length;i++){dp[i]=1;for(var j=0;j<i;j++)if(a[j]<a[i])dp[i]=Math.max(dp[i],dp[j]+1);b=Math.max(b,dp[i])}return b},
+ run:runLIS,
+ code:function(pk){return "vector<int> dp(n, 1);\nfor (int i = 0; i < n; i++)\n    for (int j = 0; j < i; j++)\n        if ("+(pk[0]==1?'nums[j] > nums[i]':(pk[0]<0?'/* ___ */':'nums[j] < nums[i]'))+") dp[i] = max(dp[i], dp[j] + 1);\nreturn "+(pk[1]==1?'dp[n - 1];':(pk[1]<0?'/* ___ */;':'*max_element(dp.begin(), dp.end());'))}});
+BL.gr.push({n:"Insert Interval",s:"Insert a new interval into a sorted list of non-overlapping intervals and merge if needed.",tn:"output so far",
+ roles:[{q:"Intervals that end before the new interval starts…",o:[{t:"go to the output unchanged"},{t:"are merged into the new interval",w:"They are left out of the output, so they disappear."}]},
+ {q:"Intervals that overlap the new interval merge by taking…",o:[{t:"the smaller start and the larger end"},{t:"the new interval unchanged",w:"Overlapping intervals are dropped instead of merged."}]}],
+ tests:[[[[1,3],[6,9]],[2,5]],[[[1,2],[3,5],[6,7],[8,10],[12,16]],[4,8]],[[],[5,7]],[[[1,5]],[2,3]],[[[1,5]],[6,8]]],
+ brute:function(t){var iv=t[0],ns=t[1].slice(),res=[],placed=false;iv.forEach(function(x){if(x[1]<ns[0])res.push(x);else if(x[0]>ns[1]){if(!placed){res.push(ns);placed=true}res.push(x)}else ns=[Math.min(ns[0],x[0]),Math.max(ns[1],x[1])]});if(!placed)res.push(ns);return JSON.stringify(res)},
+ run:runInsert,
+ code:function(pk){return "vector<vector<int>> out;\nint i = 0;\nwhile (i < n && iv[i][1] < ns[0]) {\n    "+(pk[0]==1?'ns = {min(ns[0], iv[i][0]), max(ns[1], iv[i][1])};   // merged (wrong)':'out.push_back(iv[i]);')+"\n    i++;\n}\nwhile (i < n && iv[i][0] <= ns[1]) {\n    "+(pk[1]==1?'/* new interval kept unchanged */':(pk[1]<0?'/* ___ */':'ns = {min(ns[0], iv[i][0]), max(ns[1], iv[i][1])};'))+"\n    i++;\n}\nout.push_back(ns);\nfor (; i < n; i++) out.push_back(iv[i]);\nreturn out;"}});
+BL.mat.push({n:"Set Matrix Zeroes",s:"If a cell in a matrix is zero, set its entire row and column to zero in place.",tn:"matrix state",
+ roles:[{q:"Find which rows and columns to clear by…",o:[{t:"recording the zeros of the original matrix first"},{t:"zeroing as you scan, then continuing",w:"Zeros created during the scan spread to rows and columns that should stay."}]},
+ {q:"Clear the rows and columns recorded for each zero…",o:[{t:"both the row and the column"},{t:"the row only",w:"Columns that held a zero keep their other values."}]}],
+ tests:[[[[1,1,1],[1,0,1],[1,1,1]]],[[[0,1,2,0],[3,4,5,2],[1,3,1,5]]],[[[1]]],[[[0]]],[[[1,2],[3,0]]]],
+ brute:function(t){var a=t[0],R=a.length,C=a[0].length,m=a.map(function(r){return r.slice()});for(var r=0;r<R;r++)for(var c=0;c<C;c++)if(a[r][c]===0){for(var k=0;k<C;k++)m[r][k]=0;for(k=0;k<R;k++)m[k][c]=0}return JSON.stringify(m)},
+ run:runZeroes,
+ code:function(pk){return "int R = m.size(), C = m[0].size();\n"+(pk[0]==1?"for (int r = 0; r < R; r++)\n    for (int c = 0; c < C; c++)\n        if (m[r][c] == 0) { /* clears row r and column c now */ }":"vector<bool> zr(R), zc(C);\nfor (int r = 0; r < R; r++)\n    for (int c = 0; c < C; c++)\n        if (m[r][c] == 0) zr[r] = zc[c] = true;\nfor (int r = 0; r < R; r++)\n    for (int c = 0; c < C; c++)\n        if (zr[r] || "+(pk[1]==1?'false':(pk[1]<0?'/* ___ */':'zc[c]'))+") m[r][c] = 0;")+"\nreturn m;"}});
+BL.mat.push({n:"Spiral Matrix",s:"Return all elements of a matrix in spiral order.",tn:"cells visited",
+ roles:[{q:"Start the walk…",o:[{t:"moving right, then turning clockwise"},{t:"moving down first",w:"The cells come out in a different order."}]},
+ {q:"When the next cell is outside the matrix or already visited…",o:[{t:"turn clockwise and continue"},{t:"stop",w:"The walk stops after one side."}]}],
+ tests:[[[[1,2,3],[4,5,6],[7,8,9]]],[[[1,2,3,4],[5,6,7,8],[9,10,11,12]]],[[[1]]],[[[1,2],[3,4]]],[[[1,2,3]]]],
+ brute:function(t){var m=t[0],out=[],top=0,bot=m.length-1,left=0,right=m[0].length-1;while(top<=bot&&left<=right){for(var c=left;c<=right;c++)out.push(m[top][c]);top++;for(var r=top;r<=bot;r++)out.push(m[r][right]);right--;if(top<=bot){for(c=right;c>=left;c--)out.push(m[bot][c]);bot--}if(left<=right){for(r=bot;r>=top;r--)out.push(m[r][left]);left++}}return JSON.stringify(out)},
+ run:runSpiral,
+ code:function(pk){return "vector<int> out;\nint r = 0, c = 0, d = 0;\nint dr[] = {"+(pk[0]==1?'1, 0, -1, 0':'0, 1, 0, -1')+"};\nint dc[] = {"+(pk[0]==1?'0, 1, 0, -1':'1, 0, -1, 0')+"};\nfor (int k = 0; k < R * C; k++) {\n    out.push_back(m[r][c]);\n    seen[r][c] = true;\n    int nr = r + dr[d], nc = c + dc[d];\n    if (nr < 0 || nc < 0 || nr >= R || nc >= C || seen[nr][nc]) {\n        "+(pk[1]==1?'break;':'d = (d + 1) % 4;   // turn clockwise')+"\n        nr = r + dr[d]; nc = c + dc[d];\n    }\n    r = nr; c = nc;\n}\nreturn out;"}});
+BL.ll.push({n:"Merge Two Sorted Lists",s:"Merge two sorted linked lists into one sorted list.",tn:"merged so far",
+ roles:[{q:"Take the next node from…",o:[{t:"the list whose head is smaller"},{t:"always the first list",w:"Larger values from the second list come out too early."}]},
+ {q:"When one list runs out…",o:[{t:"attach the rest of the other list"},{t:"drop the rest",w:"Nodes at the end are lost."}]}],
+ tests:[[[1,2,4],[1,3,4]],[[],[]],[[],[0]],[[5],[1,2,4]]],
+ brute:function(t){return JSON.stringify(t[0].concat(t[1]).sort(function(a,b){return a-b}))},
+ run:runMerge2,
+ code:function(pk){return "ListNode dummy(0), *tail = &dummy;\nwhile (a && b) {\n    if ("+(pk[0]==1?'true':(pk[0]<0?'/* ___ */':'a->val <= b->val'))+") { tail->next = a; a = a->next; }\n    else { tail->next = b; b = b->next; }\n    tail = tail->next;\n}\n"+(pk[1]==1?'// the rest is dropped':'tail->next = a ? a : b;')+"\nreturn dummy.next;"}});
+BL.ll.push({n:"Merge k Sorted Lists",s:"Merge k sorted linked lists into one sorted list.",tn:"next node chosen",
+ roles:[{q:"Choose the next node as…",o:[{t:"the smallest current head among all lists"},{t:"the head of the first non-empty list",w:"Smaller values in later lists come out late."}]},
+ {q:"After taking a node, move that list forward…",o:[{t:"to the next node"},{t:"not at all",w:"The same node is taken again and again."}]}],
+ tests:[[[[1,4,5],[1,3,4],[2,6]]],[[]],[[[1],[0]]],[[[2],[1,3],[]]],[[[],[]]]],
+ brute:function(t){var all=[];t[0].forEach(function(l){all=all.concat(l)});return JSON.stringify(all.sort(function(a,b){return a-b}))},
+ run:runMergeK,
+ code:function(pk){return "priority_queue<pair<int,int>, vector<pair<int,int>>, greater<>> heap;   // (value, list)\nfor (int i = 0; i < k; i++) if (idx[i] < lists[i].size()) heap.push({lists[i][idx[i]], i});\nwhile (!heap.empty()) {\n    auto [v, i] = heap.top(); heap.pop();\n    out.push_back(v);\n    "+(pk[1]==1?'/* not moved forward */':'idx[i]++;   // advance this list')+"\n    if (idx[i] < lists[i].size()) heap.push({lists[i][idx[i]], i});\n}\nreturn out;"}});
+BL.tree.push({n:"Binary Tree Maximum Path Sum",s:"Find the maximum sum of a path in a binary tree. A path can start and end at any node.",tn:"best path so far",
+ roles:[{q:"A subtree returns to its parent…",o:[{t:"the node plus the better of its two sides (sides below 0 ignored)"},{t:"the node plus both sides",w:"A path that splits cannot continue to the parent, so the parent gets an invalid path."}]},
+ {q:"The best path through a node is…",o:[{t:"the node plus both sides (sides below 0 ignored)"},{t:"the node plus both sides as they are",w:"A negative side is included, so the total can be too small."}]}],
+ tests:[[[1,2,3]],[[-10,9,20,null,null,15,7]],[[-3]],[[2,-1]],[[1,-2,3]],[[5,4,8,11,null,13,4,7,2,null,null,null,1]]],
+ brute:function(t){var best=-Infinity;function paths(n){if(!n)return [];var l=paths(n.l),r=paths(n.r);var out=[[n.v]];l.forEach(function(p){out.push([n.v].concat(p))});r.forEach(function(p){out.push([n.v].concat(p))});return out.concat(l.map(function(p){return p})).concat(r)}
+   function allPairs(n){if(!n)return;best=Math.max(best,n.v);var sums=function(x){if(!x)return [];var a=sums(x.l),b=sums(x.r);var res=[x.v];a.forEach(function(s){res.push(x.v+s)});b.forEach(function(s){res.push(x.v+s)});return res};
+     var L=sums(n.l),R=sums(n.r);L.forEach(function(a){best=Math.max(best,n.v+a);R.forEach(function(b){best=Math.max(best,n.v+a+b)})});R.forEach(function(b){best=Math.max(best,n.v+b)});allPairs(n.l);allPairs(n.r)}
+   allPairs(mkT(t[0]));return best},
+ run:runMaxPath,
+ code:function(pk){return "int best = INT_MIN;\nint gain(TreeNode* n) {\n    if (!n) return 0;\n    int L = gain(n->left), R = gain(n->right);\n    int l = max(0, L), r = max(0, R);\n    best = max(best, "+(pk[1]==1?'n->val + L + R':(pk[1]<0?'/* ___ */':'n->val + l + r'))+");\n    return "+(pk[0]==1?'n->val + l + r;':(pk[0]<0?'/* ___ */;':'n->val + max(l, r);'))+"\n}"}});
+BL.tree.push({n:"Serialize and Deserialize Binary Tree",s:"Design a way to convert a binary tree to a string and back so the same tree is rebuilt exactly.",tn:"string built",
+ roles:[{q:"Write each empty child as…",o:[{t:"a marker such as #"},{t:"skipping it",w:"Without markers the tree shape cannot be recovered."}]},
+ {q:"Read the string back…",o:[{t:"in the same order it was written"},{t:"in reverse order",w:"Parents are read after their children, so the tree is rebuilt wrong."}]}],
+ tests:[[[1,2,3,null,null,4,5]],[[]],[[1]],[[1,null,2]],[[1,2,null,3]]],
+ brute:function(t){return ser(mkT(t[0]))},
+ run:runSerial,
+ code:function(pk){return "string serialize(TreeNode* root) {\n    string s;\n    function<void(TreeNode*)> enc = [&](TreeNode* n) {\n        if (!n) { "+(pk[0]==1?'/* skipped */':(pk[0]<0?'/* ___ */':"s += '#,';"))+" return; }\n        s += to_string(n->val) + ',';\n        enc(n->left);\n        enc(n->right);\n    };\n    enc(root);\n    return s;\n}\n// deserialize reads the tokens "+(pk[1]==1?'from the end (wrong)':'in the same order')+" and rebuilds the tree"}});
+BL.trie.push({n:"Design Add and Search Words Data Structure",s:"Design a structure that adds words and searches them, where a dot can match any letter.",tn:"trie walk",
+ roles:[{q:"A '.' in a search matches…",o:[{t:"any letter (try every child)"},{t:"only a literal '.'",w:"Words like \"bad\" are not found by \"b.d\"."}]},
+ {q:"When a word is added, its last node…",o:[{t:"is marked as the end of a word"},{t:"is not marked",w:"Searching \"bad\" finds nothing, because no word is recorded as complete."}]}],
+ tests:[[["bad","dad","mad"],[".ad","b..","bad","ba",".."]],[["ab"],["a",".b","ab","b.."]],[["a","b"],["a",".","c"]],[[],["x",""]]],
+ brute:function(t){var words=t[0];return JSON.stringify(t[1].map(function(q){return words.some(function(w){if(w.length!==q.length)return false;for(var i=0;i<q.length;i++)if(q[i]!=='.'&&q[i]!==w[i])return false;return true})}))},
+ run:runDesign,
+ code:function(pk){return "void addWord(string w) {\n    TrieNode* n = root;\n    for (char c : w) {\n        if (!n->next[c - 'a']) n->next[c - 'a'] = new TrieNode();\n        n = n->next[c - 'a'];\n    }\n    "+(pk[1]==1?'/* not marked */':(pk[1]<0?'/* ___ */':'n->isEnd = true;'))+"\n}\nbool search(TrieNode* n, string& w, int i) {\n    if (i == (int)w.size()) return n->isEnd;\n    if (w[i] == '.' "+(pk[0]==1?'&& false':'')+") {\n        for (auto child : n->next) if (child && search(child, w, i + 1)) return true;\n        return false;\n    }\n    return n->next[w[i] - 'a'] && search(n->next[w[i] - 'a'], w, i + 1);\n}"}});
+BL.trie.push({n:"Word Search II",s:"Find all words from a list that can be traced through adjacent cells in a grid.",tn:"trie walk",
+ roles:[{q:"Search the grid using…",o:[{t:"a trie of all the words, pruning branches that are not prefixes"},{t:"one separate search per word (same answer, slower)"}]},
+ {q:"After leaving a cell, that cell…",o:[{t:"is restored to its letter"},{t:"stays marked",w:"Later searches cannot use the cell, so words that share it are missed."}]}],
+ tests:[[[["o","a","a","n"],["e","t","a","e"],["i","h","k","r"],["i","f","l","v"]],["oath","pea","eat","rain"]],[[["a","b"],["c","d"]],["abcb"]],[[["a","a"]],["aaa"]],[[["a"]],["a"]]],
+ brute:function(t){var words=t[1],found=[];words.forEach(function(w){var b=t[0],R=b.length,C=b[0].length,ok=false,vis=b.map(function(r){return r.map(function(){return false})});
+   function d(r,c,k){if(ok||r<0||c<0||r>=R||c>=C||vis[r][c]||b[r][c]!==w[k])return;if(k==w.length-1){ok=true;return}vis[r][c]=true;d(r+1,c,k+1);d(r-1,c,k+1);d(r,c+1,k+1);d(r,c-1,k+1);vis[r][c]=false}
+   for(var r=0;r<R&&!ok;r++)for(var c=0;c<C&&!ok;c++)d(r,c,0);if(ok)found.push(w)});return JSON.stringify(found.sort())},
+ run:runWordII,
+ code:function(pk){return "void dfs(int r, int c, TrieNode* node) {\n    char ch = board[r][c];\n    if (!node->next[ch - 'a']) return;\n    node = node->next[ch - 'a'];\n    if (!node->word.empty()) { found.insert(node->word); node->word.clear(); }\n    char saved = ch;\n    board[r][c] = '#';\n    for (auto [dr, dc] : dirs) {\n        int nr = r + dr, nc = c + dc;\n        if (nr >= 0 && nc >= 0 && nr < R && nc < C && board[nr][nc] != '#') dfs(nr, nc, node);\n    }\n    "+(pk[1]==1?'/* cell stays marked */':(pk[1]<0?'/* ___ */':'board[r][c] = saved;   // restore'))+"\n}"}});
+BL.heap.push({n:"Find Median from Data Stream",s:"Support adding numbers and reading the median at any time.",tn:"halves of the stream",
+ roles:[{q:"Route a new number by comparing with the top of…",o:[{t:"the lower half (its largest value)"},{t:"the upper half (its smallest value)",w:"Numbers land on the wrong side, so the median is off."}]},
+ {q:"Rebalance so the lower half has…",o:[{t:"at most one more element than the upper half"},{t:"no rebalancing",w:"The halves drift apart and the median is wrong."}]}],
+ tests:[[[1,2,3,4,5]],[[2,1,3,4]],[[5,15,1,3]],[[1]],[[-1,-2,-3]],[[1,2]]],
+ brute:function(t){var a=[],out=[];t[0].forEach(function(x){a.push(x);var s=a.slice().sort(function(p,q){return p-q}),n=s.length;out.push(n%2?s[(n-1)/2]:(s[n/2-1]+s[n/2])/2)});return JSON.stringify(out)},
+ run:runMedian,
+ code:function(pk){return "priority_queue<int> lo;                         // max-heap\npriority_queue<int, vector<int>, greater<int>> hi;   // min-heap\nfor (int x : nums) {\n    "+(pk[0]==1?'if (!hi.empty() && x <= hi.top()) lo.push(x); else hi.push(x);   // wrong half':'if (lo.empty() || x <= lo.top()) lo.push(x); else hi.push(x);')+"\n    "+(pk[1]==1?'/* no rebalancing */':'if (lo.size() > hi.size() + 1) { hi.push(lo.top()); lo.pop(); }\n    if (hi.size() > lo.size()) { lo.push(hi.top()); hi.pop(); }')+"\n}"}});
+BL.graph.push({n:"Alien Dictionary",s:"Given words sorted in an alien language, find the order of its letters.",tn:"constraints so far",
+ roles:[{q:"For the first differing letters a (earlier word) and b (later word), add the edge…",o:[{t:"a → b (a comes before b)"},{t:"b → a (reversed)",w:"The order comes out backwards."}]},
+ {q:"Build the order by…",o:[{t:"topological sort (letters with no unmet constraint first)"},{t:"sorting the letters alphabetically",w:"Alphabetical order ignores the words."}]}],
+ tests:[[["wrt","wrf","er","ett","rftt"]],[["z","x"]],[["z","x","z"]],[["abc","ab"]],[["ba","ab"]],[["a"]]],
+ brute:function(t){return alienFeasible(t[0])?'ok':'none'},
+ run:runAlien,
+ code:function(pk){return "// edge for the first differing pair (a in earlier word, b in later word)\nadj[a].push_back(b);   "+(pk[0]==1?'// reversed (wrong)':'')+"\n"+(pk[1]==1?'string order = sorted(letters);   // ignores the edges':'queue<char> q;   // letters with indegree 0\nstring order;\nwhile (!q.empty()) { char c = q.front(); q.pop(); order += c; for (char d : adj[c]) if (--indeg[d] == 0) q.push(d); }')+"\nreturn order.size() == letters.size() ? order : \"\";"}});
 document.addEventListener("keydown",function(e){
   if(!R||R.ans||!R.c)return;var n=+e.key;if(n>=1&&n<=4&&n<=R.c.length)answer(n-1);
 });
